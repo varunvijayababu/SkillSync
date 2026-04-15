@@ -7,6 +7,8 @@ const authRoutes = require("./routes/auth");
 const uploadRoutes = require("./routes/upload");
 const roadmapRoutes = require("./routes/roadmap");
 const coverLetterRoutes = require("./routes/coverLetter");
+const resumeBuilderRoutes = require("./routes/resumeBuilder");
+const profileRoutes = require("./routes/profile");
 
 const app = express();
 connectDB();
@@ -27,6 +29,8 @@ app.use("/api", authRoutes);
 app.use("/api", uploadRoutes);
 app.use("/api", roadmapRoutes);
 app.use("/api", coverLetterRoutes);
+app.use("/api", resumeBuilderRoutes);
+app.use("/api", profileRoutes);
 
 app.use((req, res) => {
   return sendError(res, "Route not found", 404);

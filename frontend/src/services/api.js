@@ -1,4 +1,8 @@
 const API_URL = "http://localhost:5000/api";
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const parseResponse = async (res) => {
   let json = {};
@@ -41,6 +45,9 @@ export const loginUser = async (data) => {
 export const uploadResume = async (formData) => {
   const res = await fetch(`${API_URL}/upload`, {
     method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
     body: formData,
   });
 
@@ -48,6 +55,46 @@ export const uploadResume = async (formData) => {
 };
 
 export const fetchHistory = async () => {
-  const res = await fetch(`${API_URL}/history`);
+  const res = await fetch(`${API_URL}/history`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  return parseResponse(res);
+};
+
+export const generateResumeBuilder = async (payload) => {
+  const res = await fetch(`${API_URL}/resume-builder`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(res);
+};
+
+export const fetchLatestProfile = async () => {
+  const res = await fetch(`${API_URL}/profile/latest`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  return parseResponse(res);
+};
+
+export const saveLatestProfile = async (payload) => {
+  const res = await fetch(`${API_URL}/profile/latest`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
   return parseResponse(res);
 };

@@ -15,6 +15,13 @@ function Register() {
     const res = await registerUser(form);
 
     if (!res.error) {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          name: res?.name || form.name || "",
+          email: res?.email || form.email || "",
+        })
+      );
       alert("Registration successful 🚀");
     } else {
       alert(res.error || "Registration failed");
