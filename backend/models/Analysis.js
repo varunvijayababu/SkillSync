@@ -31,6 +31,33 @@ const analysisSchema = new mongoose.Schema({
   totalRequiredSkills: Number,
   matchedSkills: [String],
   missingSkills: [String],
+  skillValidation: [
+    {
+      skill: String,
+      confidence: Number,
+    },
+  ],
+  impactScore: Number,
+  impactFeedback: [String],
+  projectRelevance: [
+    {
+      name: String,
+      relevance: String,
+    },
+  ],
+  attentionData: {
+    attentionScore: Number,
+    topFocusAreas: [String],
+    ignoredSections: [String],
+  },
+  skillDecay: [
+    {
+      skill: String,
+      status: String,
+    },
+  ],
+  missingTrendingSkills: [String],
+  storyFeedback: [String],
   suggestions: [String],
   skillPriority: {
     critical: [String],
@@ -61,6 +88,12 @@ const analysisSchema = new mongoose.Schema({
     stuffingDetected: Boolean,
     repeatedKeywordCount: Number,
     warning: String,
+  },
+  riskMessage: String,
+  gamification: {
+    level: Number,
+    xp: Number,
+    totalXP: Number
   },
   createdAt: {
     type: Date,

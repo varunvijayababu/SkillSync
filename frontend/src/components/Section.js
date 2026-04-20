@@ -1,7 +1,7 @@
 import Badge from "./Badge";
-import { BarChart2 } from "lucide-react";
+import { BarChart2, Sparkles, Loader2 } from "lucide-react";
 
-function Section({ title, items = [], accent = "text-blue-700 dark:text-blue-400", display = "list", badgeVariant = "secondary" }) {
+function Section({ title, items = [], accent = "text-blue-700 dark:text-blue-400", display = "list", badgeVariant = "secondary", onRewrite, rewritingIndex }) {
   return (
     <section>
       <h4 className={`text-sm font-bold uppercase tracking-wider mb-4 ${accent}`}>{title}</h4>
@@ -23,7 +23,20 @@ function Section({ title, items = [], accent = "text-blue-700 dark:text-blue-400
       ) : (
         <ul className="list-disc ml-5 space-y-1 text-sm text-gray-600 dark:text-gray-300">
           {items.map((item, idx) => (
-            <li key={`${item}-${idx}`}>{item}</li>
+            <li key={`${item}-${idx}`} className="flex items-start justify-between group py-1">
+              <span className="flex-1">{item}</span>
+              {onRewrite && (
+                <button
+                  type="button"
+                  onClick={() => onRewrite(item, idx)}
+                  disabled={rewritingIndex === idx}
+                  className="opacity-0 group-hover:opacity-100 ml-3 shrink-0 text-indigo-500 hover:text-indigo-600 transition-opacity"
+                  title="Rewrite with AI"
+                >
+                  {rewritingIndex === idx ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                </button>
+              )}
+            </li>
           ))}
         </ul>
       )}

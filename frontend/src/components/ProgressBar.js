@@ -9,7 +9,7 @@ function ProgressBar({ value = 0, label = "Progress", color }) {
       {label && (
         <div className="flex justify-between mb-1">
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {label} — {value}%
+            {label} - {value}%
           </span>
         </div>
       )}

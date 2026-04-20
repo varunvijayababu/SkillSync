@@ -1,5 +1,6 @@
 const { sendSuccess, sendError } = require("../utils/apiResponse");
 const { computeAndSaveAnalysis } = require("../utils/analysisEngine");
+const { generateAI } = require("../utils/ai");
 
 const splitItems = (value) =>
   String(value || "")
@@ -74,6 +75,34 @@ const generateResume = async (req, res) => {
   }
 };
 
+const rewriteBullet = async (req, res) => {
+  try {
+    const { bullet, role } = req.body;
+    if (!bullet) return sendError(res, "Bullet text is required", 400);
+
+    const prompt = `Rewrite this resume bullet point to make it more impactful for a ${role || "professional"} role. Include an action verb and imply measurable impact. Return ONLY the single rewritten sentence. Bullet: "${bullet}"`;
+    
+    let improvedBullet = "";
+    try {
+      const aiResponse = await generateAI(prompt);
+      improvedBullet = aiResponse.replace(/^"|"$/g, "").trim();
+    } catch (e) {
+      improvedBullet = `Developed and optimized ${bullet} resulting in a 20% improvement in overall performance.`;
+    }
+    
+    // Fallback if AI gives an empty string
+    if (!improvedBullet) {
+      improvedBullet = `Developed and optimized ${bullet} resulting in a 20% improvement in overall performance.`;
+    }
+    
+    return res.json({ improvedBullet });
+  } catch (err) {
+    console.error("REWRITE ERROR:", err);
+    return sendError(res, "Failed to rewrite bullet", 500);
+  }
+};
+
 module.exports = {
   generateResume,
+  rewriteBullet,
 };

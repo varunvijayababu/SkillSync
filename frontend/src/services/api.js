@@ -54,6 +54,18 @@ export const uploadResume = async (formData) => {
   return parseResponse(res);
 };
 
+export const parseResume = async (formData) => {
+  const res = await fetch(`${API_URL}/parse`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
+    body: formData,
+  });
+
+  return parseResponse(res);
+};
+
 export const fetchHistory = async () => {
   const res = await fetch(`${API_URL}/history`, {
     headers: {
@@ -96,5 +108,28 @@ export const saveLatestProfile = async (payload) => {
     body: JSON.stringify(payload),
   });
 
+  return parseResponse(res);
+};
+
+export const rewriteBulletApi = async (payload) => {
+  const res = await fetch(`${API_URL}/rewrite`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse(res);
+};
+
+export const compareResumesApi = async (formData) => {
+  const res = await fetch(`${API_URL}/compare`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
+    body: formData,
+  });
   return parseResponse(res);
 };
