@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import QuickAnalyze from "./pages/QuickAnalyze";
 import Upload from "./pages/Upload";
 import CoverLetter from "./pages/coverLetter";
 import Dashboard from "./pages/Dashboard";
@@ -37,6 +38,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
         <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
         <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
+        <Route path="/quick-analyze" element={<PageTransition><QuickAnalyze /></PageTransition>} />
 
         <Route path="/upload" element={
           <ProtectedRoute>

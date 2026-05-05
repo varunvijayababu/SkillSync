@@ -150,14 +150,15 @@ function Dashboard() {
     const resumeData = getLocalJson("resumeData", {});
     const scoreHistory = getLocalJson("resumeScoreHistory", []);
     const savedInterview = getLocalJson("interviewProgress", null);
+    const quickAnalysis = getLocalJson("quickAnalysis", null);
     const localResumeUploaded = localStorage.getItem("resumeUploaded") === "true";
 
-    const fallbackScore = scoreHistory.length > 0 ? scoreHistory[scoreHistory.length - 1]?.score : 0;
+    const fallbackScore = scoreHistory.length > 0 ? scoreHistory[scoreHistory.length - 1]?.score : quickAnalysis?.atsScore || quickAnalysis?.score || 0;
     const atsScore = Number(latest?.score ?? latest?.roleReadinessPercentage ?? fallbackScore ?? 0);
-    const missingSkills = latest?.missingSkills || roadmapData.missingSkills || [];
-    const matchedSkills = latest?.matchedSkills || roadmapData.matchedSkills || latestProfile?.skills || [];
-    const targetRole = latest?.role || roadmapData.role || latestProfile?.role || resumeData.role || "Set your target role";
-    const resumeUploaded = Boolean(localResumeUploaded || latest || scoreHistory.length > 0 || resumeData.name || latestProfile?.name);
+    const missingSkills = latest?.missingSkills || roadmapData.missingSkills || quickAnalysis?.missingSkills || [];
+    const matchedSkills = latest?.matchedSkills || roadmapData.matchedSkills || latestProfile?.skills || quickAnalysis?.matchedSkills || [];
+    const targetRole = latest?.role || roadmapData.role || latestProfile?.role || resumeData.role || quickAnalysis?.role || "Set your target role";
+    const resumeUploaded = Boolean(localResumeUploaded || latest || scoreHistory.length > 0 || resumeData.name || latestProfile?.name || quickAnalysis?.resumeUploaded);
     const completedSteps = getStepState({
       resumeUploaded,
       atsScore,
@@ -219,35 +220,35 @@ function Dashboard() {
   };
 
   const toneClass = {
-    blue: "from-blue-600 to-indigo-600 shadow-blue-900/20",
-    amber: "from-amber-500 to-orange-600 shadow-amber-900/20",
-    indigo: "from-indigo-600 to-violet-600 shadow-indigo-900/20",
-    emerald: "from-emerald-500 to-teal-600 shadow-emerald-900/20",
-    rose: "from-rose-500 to-pink-600 shadow-rose-900/20",
+    blue: "from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 shadow-blue-900/20",
+    amber: "from-amber-400 to-orange-500 dark:from-amber-500 dark:to-orange-700 shadow-amber-900/20",
+    indigo: "from-indigo-500 to-violet-600 dark:from-indigo-600 dark:to-violet-700 shadow-indigo-900/20",
+    emerald: "from-emerald-400 to-teal-500 dark:from-emerald-500 dark:to-teal-700 shadow-emerald-900/20",
+    rose: "from-rose-400 to-pink-500 dark:from-rose-500 dark:to-pink-700 shadow-rose-900/20",
   }[nextAction.tone];
 
   return (
-    <div className="dark min-h-screen bg-gray-950 text-gray-100 px-4 md:px-8 py-8 transition-colors duration-300">
+    <div className="min-h-screen bg-white dark:bg-[#0B0F1A] text-gray-900 dark:text-gray-100 px-4 md:px-8 py-8 transition-colors duration-300">
       <div className="max-w-7xl mx-auto space-y-8">
         <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-200 text-xs font-black uppercase tracking-widest mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-400/20 text-blue-700 dark:text-blue-200 text-xs font-black uppercase tracking-widest mb-4">
               <Sparkles className="w-4 h-4" />
               Guided Career System
             </div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white">Career Dashboard</h1>
-            <p className="text-gray-400 mt-3 text-lg max-w-2xl">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-gray-950 dark:text-white">Career Dashboard</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-3 text-lg max-w-2xl">
               Your step-by-step path from resume upload to job-ready applications.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 min-w-[260px]">
-            <p className="text-xs font-black uppercase tracking-widest text-gray-500">Target Role</p>
-            <p className="text-2xl font-black text-white mt-1">{userData.targetRole}</p>
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#111827] px-5 py-4 min-w-[260px] shadow-sm">
+            <p className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Target Role</p>
+            <p className="text-2xl font-black text-gray-950 dark:text-white mt-1">{userData.targetRole}</p>
           </div>
         </section>
 
         {error && (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-200 px-5 py-4 font-semibold">
+          <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-200 px-5 py-4 font-semibold">
             {error}
           </div>
         )}
@@ -255,20 +256,20 @@ function Dashboard() {
         <section className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           <div className="xl:col-span-8">
             <div className={`h-full rounded-3xl bg-gradient-to-br ${toneClass} p-1 shadow-2xl`}>
-              <div className="h-full rounded-[22px] bg-gray-950/70 backdrop-blur-xl p-6 md:p-8 flex flex-col md:flex-row gap-6 md:items-center justify-between">
+              <div className="h-full rounded-[22px] bg-white/85 dark:bg-gray-950/70 backdrop-blur-xl p-6 md:p-8 flex flex-col md:flex-row gap-6 md:items-center justify-between">
                 <div className="flex gap-5">
-                  <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
-                    <ActionIcon className="w-7 h-7 text-white" />
+                  <div className="w-14 h-14 rounded-2xl bg-gray-950/10 dark:bg-white/15 flex items-center justify-center shrink-0">
+                    <ActionIcon className="w-7 h-7 text-gray-950 dark:text-white" />
                   </div>
                   <div>
-                    <p className="text-sm font-black uppercase tracking-widest text-white/60 mb-2">Recommended Next Action</p>
-                    <h2 className="text-2xl md:text-3xl font-black text-white">{nextAction.title}</h2>
-                    <p className="text-white/70 mt-3 max-w-2xl font-medium leading-relaxed">{nextAction.description}</p>
+                    <p className="text-sm font-black uppercase tracking-widest text-gray-500 dark:text-white/60 mb-2">Recommended Next Action</p>
+                    <h2 className="text-2xl md:text-3xl font-black text-gray-950 dark:text-white">{nextAction.title}</h2>
+                    <p className="text-gray-700 dark:text-white/70 mt-3 max-w-2xl font-medium leading-relaxed">{nextAction.description}</p>
                   </div>
                 </div>
                 <Link
                   to={nextAction.route}
-                  className="inline-flex items-center justify-center gap-2 bg-white text-gray-950 font-black px-6 py-3 rounded-xl hover:bg-gray-100 transition-all shadow-xl shrink-0"
+                  className="inline-flex items-center justify-center gap-2 bg-gray-950 dark:bg-white text-white dark:text-gray-950 font-black px-6 py-3 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-xl shrink-0"
                 >
                   {nextAction.cta}
                   <ArrowRight className="w-5 h-5" />
@@ -277,27 +278,27 @@ function Dashboard() {
             </div>
           </div>
 
-          <Card className="xl:col-span-4 bg-white/[0.06] dark:bg-white/[0.06] border-white/10 hover:translate-y-0">
+          <Card className="xl:col-span-4 bg-gray-50 dark:bg-[#111827] border-gray-200 dark:border-gray-700 hover:translate-y-0">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-gray-500">Career Progress</p>
-                <h3 className="text-2xl font-black text-white mt-1">{completedCount}/{FLOW_STEPS.length} steps</h3>
+                <p className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Career Progress</p>
+                <h3 className="text-2xl font-black text-gray-950 dark:text-white mt-1">{completedCount}/{FLOW_STEPS.length} steps</h3>
               </div>
-              <Rocket className="w-9 h-9 text-blue-300" />
+              <Rocket className="w-9 h-9 text-blue-600 dark:text-blue-300" />
             </div>
             <ProgressBar value={progressPercent} label="System completion" color="bg-gradient-to-r from-blue-400 to-emerald-400" />
           </Card>
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="bg-white/[0.06] dark:bg-white/[0.06] border-white/10 hover:translate-y-0">
+          <Card className="bg-gray-50 dark:bg-[#111827] border-gray-200 dark:border-gray-700 hover:translate-y-0">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/15 flex items-center justify-center">
-                <TrendingUp className="w-7 h-7 text-blue-300" />
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center">
+                <TrendingUp className="w-7 h-7 text-blue-600 dark:text-blue-300" />
               </div>
               <div>
-                <p className="text-4xl font-black text-white">{userData.atsScore}%</p>
-                <p className="text-xs font-black uppercase tracking-widest text-gray-500">ATS Score</p>
+                <p className="text-4xl font-black text-gray-950 dark:text-white">{userData.atsScore}%</p>
+                <p className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">ATS Score</p>
               </div>
             </div>
             <div className="mt-6">
@@ -305,44 +306,44 @@ function Dashboard() {
             </div>
           </Card>
 
-          <Card className="bg-white/[0.06] dark:bg-white/[0.06] border-white/10 hover:translate-y-0">
+          <Card className="bg-gray-50 dark:bg-[#111827] border-gray-200 dark:border-gray-700 hover:translate-y-0">
             <div className="flex items-center gap-4 mb-5">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 flex items-center justify-center">
-                <AlertTriangle className="w-7 h-7 text-amber-300" />
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center">
+                <AlertTriangle className="w-7 h-7 text-amber-600 dark:text-amber-300" />
               </div>
               <div>
-                <p className="text-4xl font-black text-white">{userData.missingSkills.length}</p>
-                <p className="text-xs font-black uppercase tracking-widest text-gray-500">Missing Skills</p>
+                <p className="text-4xl font-black text-gray-950 dark:text-white">{userData.missingSkills.length}</p>
+                <p className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Missing Skills</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               {topMissingSkills.length > 0 ? (
                 topMissingSkills.map((skill) => (
-                  <span key={skill} className="rounded-full bg-amber-400/10 border border-amber-300/20 text-amber-100 px-3 py-1 text-xs font-bold">
+                  <span key={skill} className="rounded-full bg-amber-100 dark:bg-amber-400/10 border border-amber-200 dark:border-amber-300/20 text-amber-800 dark:text-amber-100 px-3 py-1 text-xs font-bold">
                     {skill}
                   </span>
                 ))
               ) : (
-                <p className="text-sm font-semibold text-emerald-300">No major missing skills detected.</p>
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">No major missing skills detected.</p>
               )}
             </div>
           </Card>
 
-          <Card className="bg-white/[0.06] dark:bg-white/[0.06] border-white/10 hover:translate-y-0">
+          <Card className="bg-gray-50 dark:bg-[#111827] border-gray-200 dark:border-gray-700 hover:translate-y-0">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 flex items-center justify-center">
-                <Target className="w-7 h-7 text-emerald-300" />
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center">
+                <Target className="w-7 h-7 text-emerald-600 dark:text-emerald-300" />
               </div>
               <div>
-                <p className="text-xl font-black text-white">Resume Strength</p>
-                <p className="text-xs font-black uppercase tracking-widest text-gray-500">Latest Summary</p>
+                <p className="text-xl font-black text-gray-950 dark:text-white">Resume Strength</p>
+                <p className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Latest Summary</p>
               </div>
             </div>
-            <p className="text-gray-300 font-medium leading-relaxed">{userData.resumeStrength}</p>
+            <p className="text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{userData.resumeStrength}</p>
           </Card>
         </section>
 
-        <Card title="Progress Tracker" subtitle="Complete each stage to move from resume to job-ready" className="bg-white/[0.06] dark:bg-white/[0.06] border-white/10 hover:translate-y-0">
+        <Card title="Progress Tracker" subtitle="Complete each stage to move from resume to job-ready" className="bg-gray-50 dark:bg-[#111827] border-gray-200 dark:border-gray-700 hover:translate-y-0">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
             {FLOW_STEPS.map((step, index) => {
               const done = Boolean(userData.completedSteps[step.id]);
@@ -353,18 +354,18 @@ function Dashboard() {
                   to={step.route}
                   className={`group rounded-2xl border p-4 transition-all ${
                     done
-                      ? "border-emerald-400/30 bg-emerald-400/10"
-                      : "border-white/10 bg-gray-950/40 hover:border-blue-400/40 hover:bg-blue-500/10"
+                      ? "border-emerald-300 bg-emerald-50 dark:border-emerald-400/30 dark:bg-emerald-400/10"
+                      : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-950/40 dark:hover:border-blue-400/40 dark:hover:bg-blue-500/10"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-5">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${done ? "bg-emerald-400/20 text-emerald-200" : "bg-white/10 text-gray-300"}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${done ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-200" : "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-300"}`}>
                       <StepIcon className="w-5 h-5" />
                     </div>
-                    {done ? <CheckCircle className="w-5 h-5 text-emerald-300" /> : <span className="text-xs font-black text-gray-600">0{index + 1}</span>}
+                    {done ? <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-300" /> : <span className="text-xs font-black text-gray-500 dark:text-gray-600">0{index + 1}</span>}
                   </div>
-                  <p className="font-black text-white">{step.label}</p>
-                  <p className={`text-xs font-bold mt-1 ${done ? "text-emerald-300" : "text-gray-500"}`}>{done ? "Completed" : "Pending"}</p>
+                  <p className="font-black text-gray-950 dark:text-white">{step.label}</p>
+                  <p className={`text-xs font-bold mt-1 ${done ? "text-emerald-700 dark:text-emerald-300" : "text-gray-500 dark:text-gray-500"}`}>{done ? "Completed" : "Pending"}</p>
                 </Link>
               );
             })}
@@ -372,30 +373,30 @@ function Dashboard() {
         </Card>
 
         <section className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <Card title="Score Trend" subtitle="ATS and role readiness over resume versions" className="xl:col-span-8 bg-white/[0.06] dark:bg-white/[0.06] border-white/10 hover:translate-y-0">
+          <Card title="Score Trend" subtitle="ATS and role readiness over resume versions" className="xl:col-span-8 bg-gray-50 dark:bg-[#111827] border-gray-200 dark:border-gray-700 hover:translate-y-0">
             {loading ? (
-              <div className="h-72 rounded-2xl bg-white/5 animate-pulse" />
+              <div className="h-72 rounded-2xl bg-gray-200 dark:bg-white/5 animate-pulse" />
             ) : history.length > 0 ? (
               <Line data={chartData} />
             ) : (
-              <div className="h-72 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-white/10 bg-gray-950/40">
-                <Flag className="w-12 h-12 text-gray-600 mb-4" />
-                <p className="text-gray-400 font-semibold">No resume versions yet. Upload a resume to start tracking growth.</p>
+              <div className="h-72 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950/40">
+                <Flag className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 font-semibold">No resume versions yet. Upload a resume to start tracking growth.</p>
               </div>
             )}
           </Card>
 
-          <Card title="Skill Signal" subtitle="What your profile currently proves" className="xl:col-span-4 bg-white/[0.06] dark:bg-white/[0.06] border-white/10 hover:translate-y-0">
+          <Card title="Skill Signal" subtitle="What your profile currently proves" className="xl:col-span-4 bg-gray-50 dark:bg-[#111827] border-gray-200 dark:border-gray-700 hover:translate-y-0">
             <div className="space-y-4">
               {userData.matchedSkills.slice(0, 7).length > 0 ? (
                 userData.matchedSkills.slice(0, 7).map((skill) => (
-                  <div key={skill} className="flex items-center justify-between rounded-xl bg-gray-950/50 border border-white/10 px-4 py-3">
-                    <span className="font-bold text-gray-200 capitalize">{skill}</span>
-                    <CheckCircle className="w-5 h-5 text-emerald-300" />
+                  <div key={skill} className="flex items-center justify-between rounded-xl bg-white dark:bg-gray-950/50 border border-gray-200 dark:border-gray-700 px-4 py-3">
+                    <span className="font-bold text-gray-800 dark:text-gray-200 capitalize">{skill}</span>
+                    <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
                   </div>
                 ))
               ) : (
-                <p className="text-gray-400 font-medium">Matched skills will appear after your first resume analysis.</p>
+                <p className="text-gray-600 dark:text-gray-400 font-medium">Matched skills will appear after your first resume analysis.</p>
               )}
             </div>
           </Card>

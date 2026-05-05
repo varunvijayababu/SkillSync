@@ -54,6 +54,15 @@ export const uploadResume = async (formData) => {
   return parseResponse(res);
 };
 
+export const quickAnalyzeResume = async (formData) => {
+  const res = await fetch(`${API_URL}/quick-analyze`, {
+    method: "POST",
+    body: formData,
+  });
+
+  return parseResponse(res);
+};
+
 export const parseResume = async (formData) => {
   const res = await fetch(`${API_URL}/parse`, {
     method: "POST",

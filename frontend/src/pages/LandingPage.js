@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { 
   UploadCloud, FileText, Mic, CheckCircle, 
-  Zap, Shield, Cpu, Target, PlayCircle
+  Zap, Shield, Cpu, Target
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -23,7 +23,7 @@ export default function LandingPage() {
     <div className="bg-white dark:bg-[#0B0F19] transition-colors duration-300 overflow-hidden font-sans pb-24">
       
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-20 px-6 overflow-hidden">
+      <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-20 px-6 overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 text-gray-900 dark:from-[#0B1220] dark:via-[#0B1220] dark:to-[#0B1220] dark:text-white">
          {/* Premium Glowing Background Engine */}
          <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-b from-indigo-500/30 to-purple-500/10 blur-[120px] rounded-full pointer-events-none dark:from-indigo-600/20 dark:to-purple-900/10" />
          <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] bg-gradient-to-tr from-blue-400/20 to-transparent blur-[100px] rounded-full pointer-events-none dark:from-blue-600/10" />
@@ -46,13 +46,10 @@ export default function LandingPage() {
               Upload your resume and survive our brutal 3-phase AI hiring pipeline. We analyze your string logic, simulate the recruiter's 7-second glance, and subject you to a live voice technical interview.
             </motion.p>
 
-            <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
-               <Link to="/upload" className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-lg rounded-2xl shadow-[0_10px_30px_rgba(79,70,229,0.3)] hover:shadow-[0_15px_40px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-1 flex items-center justify-center gap-2">
+            <motion.div variants={itemVariants} className="flex items-center justify-center w-full">
+               <Link to="/quick-analyze" className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-black text-lg rounded-2xl shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2">
                  <UploadCloud className="w-6 h-6"/> Upload Your Resume
                </Link>
-               <button onClick={() => window.scrollTo({top: 800, behavior: 'smooth'})} className="w-full sm:w-auto px-10 py-5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 font-black text-lg rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 shadow-sm">
-                 <PlayCircle className="w-6 h-6 text-indigo-500"/> See The Demo
-               </button>
             </motion.div>
          </motion.div>
       </section>
@@ -153,22 +150,33 @@ export default function LandingPage() {
       {/* 5. DIFFERENTIATION */}
       <section className="py-24 px-6 relative z-10">
          <div className="max-w-5xl mx-auto text-center">
-            <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight mb-16">The Market Standard vs. SkillSync</h2>
+            <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight mb-16 text-center leading-tight">
+              Why SkillSync Beats
+              <br />
+              Traditional Resume Tools
+            </h2>
             
             <div className="bg-white dark:bg-gray-800 rounded-3xl p-2 shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-               <table className="w-full text-left font-medium">
+               <table className="w-full table-fixed text-left font-medium">
                   <thead>
                      <tr className="border-b border-gray-100 dark:border-gray-700">
-                        <th className="p-6 text-gray-400 font-bold uppercase tracking-widest text-xs w-1/3">Feature</th>
-                        <th className="p-6 text-gray-500 font-bold uppercase tracking-widest text-xs border-r border-gray-100 dark:border-gray-700">Generic Builders</th>
-                        <th className="p-6 text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest text-sm bg-indigo-50 dark:bg-indigo-900/10">SkillSync AI</th>
+                        <th className="w-1/3 p-6 text-gray-400 font-bold uppercase tracking-widest text-xs align-middle">Feature</th>
+                        <th className="w-1/3 p-6 text-gray-500 font-bold uppercase tracking-widest text-xs border-r border-gray-100 dark:border-gray-700 align-middle">Generic Builders</th>
+                        <th className="w-1/3 p-6 text-indigo-700 dark:text-indigo-300 font-black uppercase tracking-widest text-sm bg-gradient-to-b from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/10 border-l border-indigo-100 dark:border-indigo-800/40 align-middle">
+                          <div className="flex items-center justify-between gap-3">
+                            <span>SkillSync AI</span>
+                            <span className="rounded-full bg-indigo-600 text-white dark:bg-indigo-400 dark:text-gray-950 px-2.5 py-1 text-[10px] font-black tracking-widest">
+                              Recommended
+                            </span>
+                          </div>
+                        </th>
                      </tr>
                   </thead>
                   <tbody>
-                     <CompareRow title="Formatting" bad="Manual PDF manipulation" good="1-Click Auto-Build"/>
-                     <CompareRow title="Bullet Points" bad="Static text templates" good="Automatic quantified STAR rewriting"/>
-                     <CompareRow title="Job Matching" bad="Not provided" good="Mathematical ATS target matching"/>
-                     <CompareRow title="Interview Prep" bad="Read static blog posts" good="Live Voice Generative AI Simulation"/>
+                     <CompareRow title="Formatting" bad="Time-consuming manual editing" good="1-Click Auto-Build"/>
+                     <CompareRow title="Bullet Points" bad="Generic copy-paste resumes" good="Automatic quantified STAR rewriting"/>
+                     <CompareRow title="Job Matching" bad="No job targeting support" good="Mathematical ATS target matching"/>
+                     <CompareRow title="Interview Prep" bad="No real interview practice" good="Live Voice Generative AI Simulation"/>
                   </tbody>
                </table>
             </div>
@@ -176,12 +184,12 @@ export default function LandingPage() {
       </section>
 
       {/* 6. FINAL CTA */}
-      <section className="py-20 relative z-10 overflow-hidden bg-gray-900 dark:bg-[#0B0F19]">
+      <section className="py-20 relative z-10 overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-[#0B1220] dark:via-[#0B1220] dark:to-[#0B1220] text-gray-900 dark:text-white transition-colors duration-300">
          <div className="max-w-4xl mx-auto text-center px-6 relative z-20">
             <Zap className="w-16 h-16 text-yellow-500 mx-auto mb-6"/>
-            <h2 className="text-5xl md:text-7xl font-black text-white tracking-tight mb-6">Stop getting ghosted.</h2>
-            <p className="text-xl text-gray-400 font-medium mb-12">Force your resume past the filters and dominate the technical interview.</p>
-            <Link to="/upload" className="inline-flex px-12 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-xl rounded-2xl shadow-[0_20px_40px_rgba(79,70,229,0.4)] hover:shadow-[0_20px_50px_rgba(79,70,229,0.6)] transition-all hover:scale-105 flex-col md:flex-row items-center justify-center gap-3">
+            <h2 className="text-5xl md:text-7xl font-black text-gray-900 dark:text-white tracking-tight mb-6">Stop getting ghosted.</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 font-medium mb-12">Force your resume past the filters and dominate the technical interview.</p>
+            <Link to="/quick-analyze" className="inline-flex px-12 py-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-black text-xl rounded-2xl shadow-lg hover:scale-105 transition-all flex-col md:flex-row items-center justify-center gap-3">
                  <UploadCloud className="w-7 h-7"/> Upload Your Resume For Free
             </Link>
          </div>
@@ -238,9 +246,19 @@ function ListItem({ text }) {
 function CompareRow({ title, bad, good }) {
   return (
     <tr className="border-b border-gray-100 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-       <td className="p-6 font-bold text-gray-800 dark:text-gray-200">{title}</td>
-       <td className="p-6 text-gray-500 font-medium border-r border-gray-100 dark:border-gray-700 flex items-center gap-2"><XCircleIcon className="w-4 h-4 text-gray-400"/> {bad}</td>
-       <td className="p-6 text-gray-900 dark:text-white font-black bg-indigo-50/50 dark:bg-indigo-900/5 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-indigo-500 shrink-0"/> {good}</td>
+       <td className="w-1/3 p-6 font-bold text-gray-800 dark:text-gray-200 align-middle">{title}</td>
+       <td className="w-1/3 p-6 text-gray-500 font-medium border-r border-gray-100 dark:border-gray-700 align-middle">
+         <div className="flex items-center gap-2">
+           <XCircleIcon className="w-4 h-4 text-rose-400 shrink-0"/>
+           <span>{bad}</span>
+         </div>
+       </td>
+       <td className="w-1/3 p-6 text-gray-900 dark:text-white font-black bg-gradient-to-r from-indigo-50/70 to-blue-50/70 dark:from-indigo-900/10 dark:to-blue-900/10 border-l border-indigo-100 dark:border-indigo-800/30 align-middle">
+         <div className="flex items-center gap-2">
+           <CheckCircle className="w-4 h-4 text-indigo-500 shrink-0"/>
+           <span>{good}</span>
+         </div>
+       </td>
     </tr>
   );
 }

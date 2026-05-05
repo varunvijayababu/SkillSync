@@ -707,9 +707,78 @@ If a section is empty or missing, return an empty array or string respectively. 
   }
 };
 
+const quickAnalyzeResume = async (req, res) => {
+  try {
+    if (!req.file?.buffer) {
+      return sendError(res, "Resume PDF file is required", 400);
+    }
+
+    const role = (req.body.role || "software developer").toLowerCase();
+    const roleSkillMap = {
+      frontend: ["html", "css", "javascript", "react", "redux", "tailwind", "git"],
+      backend: ["node", "express", "mongodb", "sql", "api", "docker", "redis"],
+      data: ["python", "sql", "excel", "pandas", "numpy", "statistics", "machine learning"],
+      generic: ["javascript", "react", "node", "sql", "python", "git", "api"],
+    };
+
+    const roleSkills =
+      role.includes("front")
+        ? roleSkillMap.frontend
+        : role.includes("back")
+        ? roleSkillMap.backend
+        : role.includes("data")
+        ? roleSkillMap.data
+        : roleSkillMap.generic;
+
+    const pdfData = await pdfParse(req.file.buffer);
+    const text = String(pdfData?.text || "").toLowerCase();
+    const matchedSkills = roleSkills.filter((skill) => text.includes(skill));
+    const missingSkills = roleSkills.filter((skill) => !matchedSkills.includes(skill));
+    const hasProjects = text.includes("project");
+    const hasExperience = text.includes("experience") || text.includes("intern") || text.includes("work");
+    const hasMetrics = /\d+%|\$\d+|\b\d+\+?(x|k|m|b)?\b/i.test(text);
+
+    let score = Math.round((matchedSkills.length / roleSkills.length) * 70);
+    if (hasProjects) score += 10;
+    if (hasExperience) score += 10;
+    if (hasMetrics) score += 10;
+    score = Math.max(10, Math.min(100, score));
+
+    const summary = [
+      matchedSkills.length > 0
+        ? `Your resume shows early alignment through ${matchedSkills.slice(0, 3).join(", ")}.`
+        : "Your resume needs clearer role-specific keywords.",
+      hasMetrics
+        ? "It includes measurable signals, which helps ATS and recruiter review."
+        : "Add quantified impact to make your achievements easier to trust.",
+      missingSkills.length > 0
+        ? `Top gaps include ${missingSkills.slice(0, 3).join(", ")}.`
+        : "No major keyword gaps were detected in this preview.",
+    ];
+
+    return sendSuccess(
+      res,
+      {
+        score,
+        atsScore: score,
+        role,
+        matchedSkills: matchedSkills.slice(0, 5),
+        missingSkills: missingSkills.slice(0, 3),
+        summary,
+        resumeUploaded: true,
+      },
+      "Quick analysis complete"
+    );
+  } catch (err) {
+    console.error("QUICK ANALYZE ERROR:", err);
+    return sendError(res, "Quick analysis failed", 500);
+  }
+};
+
 module.exports = {
   uploadResume,
   getHistory,
   compareResumes,
   parseResume,
+  quickAnalyzeResume,
 };

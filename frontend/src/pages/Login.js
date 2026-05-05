@@ -23,7 +23,9 @@ function Login() {
         };
 
         localStorage.setItem("user", JSON.stringify(userData));
-        navigate("/dashboard");
+        const redirect = localStorage.getItem("postAuthRedirect") || "/dashboard";
+        localStorage.removeItem("postAuthRedirect");
+        navigate(redirect);
       } else {
         alert(res?.error || "Login failed");
       }
@@ -77,11 +79,7 @@ function Login() {
          <div className="absolute lg:hidden top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none dark:bg-blue-600/10" />
 
          <div className="w-full max-w-md bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl relative z-10 animate-fade-in-up">
-            <Link to="/" className="mb-6 inline-block text-sm font-bold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white transition-colors">
-              &lt;- Back to Home
-            </Link>
-            
-            <div className="mb-8">
+            <div className="mt-2 mb-8">
                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30 lg:hidden">
                  <Zap className="w-6 h-6 fill-white"/>
                </div>
