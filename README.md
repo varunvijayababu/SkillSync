@@ -224,7 +224,8 @@ Deployed using:
 
 ## Upload & ATS Analysis
 
-<img width="2848" height="1453" alt="image" src="https://github.com/user-attachments/assets/de10c3dc-762d-4f33-99ef-4ec1ff180822" />
+<img width="2844" height="1460" alt="image" src="https://github.com/user-attachments/assets/ee8c455f-daa7-4d6b-b176-f5df3b54357c" />
+
 <img width="2841" height="1454" alt="image" src="https://github.com/user-attachments/assets/01bc70c3-156b-4f45-b4dc-0ce539850081" />
 
 ## Resume Builder
