@@ -228,8 +228,6 @@ export default function ResumeBuilder() {
 
   const [skillsInput, setSkillsInput] = useState("");
   const [improvingIndex, setImprovingIndex] = useState(null);
-  const [rewriteSuggestions, setRewriteSuggestions] = useState({});
-  const [rewriteErrors, setRewriteErrors] = useState({});
   const [error, setError] = useState("");
   const [profileSyncStatus, setProfileSyncStatus] = useState("local-only");
   const [template, setTemplate] = useState("modern");
@@ -284,68 +282,26 @@ export default function ResumeBuilder() {
     setResumeData({ ...resumeData, skills: arr });
   };
 
-  const getSuggestionKey = (section, idx) => `${section}-${idx}`;
-
-  const saveRewriteSuggestion = (section, idx, suggestion) => {
-    const suggestionKey = getSuggestionKey(section, idx);
-    setRewriteSuggestions((prev) => {
-      const existing = prev[suggestionKey] || [];
-      const next = [suggestion, ...existing.filter((item) => item !== suggestion)].slice(0, 3);
-      return { ...prev, [suggestionKey]: next };
-    });
-  };
-
-  const clearRewriteSuggestions = (section, idx) => {
-    const suggestionKey = getSuggestionKey(section, idx);
-    setRewriteSuggestions((prev) => {
-      const next = { ...prev };
-      delete next[suggestionKey];
-      return next;
-    });
-  };
-
-  const setRewriteErrorForKey = (suggestionKey, message = "") => {
-    setRewriteErrors((prev) => {
-      if (!message) {
-        const next = { ...prev };
-        delete next[suggestionKey];
-        return next;
-      }
-
-      return { ...prev, [suggestionKey]: message };
-    });
-  };
-
-  const handleRewrite = async (text, section, idx, fieldKey, variation = false) => {
+  const handleRewrite = async (text, section, idx, fieldKey) => {
     if (!text) return;
 
     try {
       setImprovingIndex(`${section}-${idx}`);
-      const suggestionKey = getSuggestionKey(section, idx);
-      setRewriteErrorForKey(suggestionKey, "");
-      const previousSuggestions = rewriteSuggestions[suggestionKey] || [];
+      setError("");
       const payload = {
         text,
         section,
         role: resumeData.role,
-        variation,
-        avoidText: variation ? previousSuggestions[0] || text : "",
       };
       const res = await rewriteBulletApi(payload);
       if (res?.improvedBullet) {
-        saveRewriteSuggestion(section, idx, res.improvedBullet);
+        handleChange(section, idx, fieldKey, res.improvedBullet);
       } else {
         throw new Error("Rewrite API returned no suggestion");
       }
     } catch (e) {
-      console.error("REWRITE UI ERROR:", {
-        message: e.message,
-        section,
-        idx,
-        fieldKey,
-        text,
-      });
-      setRewriteErrorForKey(getSuggestionKey(section, idx), e.message || "Failed to rewrite bullet.");
+      console.error("REWRITE UI ERROR:", e);
+      setError(e.message || "Failed to rewrite bullet.");
     } finally {
       setImprovingIndex(null);
     }
@@ -417,51 +373,7 @@ export default function ResumeBuilder() {
     <label className="mb-1 block text-sm font-semibold text-gray-700 dark:text-gray-300">{children}</label>
   );
 
-  const SuggestionPanel = ({ section, idx, fieldKey }) => {
-    const suggestionKey = getSuggestionKey(section, idx);
-    const suggestions = rewriteSuggestions[suggestionKey] || [];
-    const inlineError = rewriteErrors[suggestionKey];
 
-    if (suggestions.length === 0 && !inlineError) return null;
-
-    return (
-      <div className="mt-3 space-y-2">
-        {inlineError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
-            {inlineError}
-          </div>
-        )}
-        {suggestions.length > 0 && (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => clearRewriteSuggestions(section, idx)}
-              className="text-xs font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              Discard suggestions
-            </button>
-          </div>
-        )}
-        {suggestions.map((suggestion, suggestionIdx) => (
-          <div key={`${suggestionKey}-${suggestionIdx}`} className="rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-900/40 dark:bg-blue-900/20">
-            <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{suggestion}</p>
-            <div className="mt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setRewriteErrorForKey(suggestionKey, "");
-                  handleChange(section, idx, fieldKey, suggestion);
-                }}
-                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-              >
-                Use this
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8 transition-colors duration-300 dark:bg-gray-900">
@@ -586,12 +498,8 @@ export default function ResumeBuilder() {
                           <button type="button" onClick={() => handleRewrite(exp.description, "experience", idx, "description")} className="flex items-center gap-1 rounded-lg bg-indigo-100 px-3 py-1.5 text-xs text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300">
                             {improvingIndex === `experience-${idx}` ? "Improving..." : <><Sparkles className="w-3 h-3" /> AI Improve</>}
                           </button>
-                          <button type="button" onClick={() => handleRewrite(exp.description, "experience", idx, "description", true)} className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:bg-transparent dark:text-indigo-300">
-                            Regenerate
-                          </button>
                         </div>
                       </div>
-                      <SuggestionPanel section="experience" idx={idx} fieldKey="description" />
                     </div>
                   </div>
                 ))}
@@ -627,12 +535,8 @@ export default function ResumeBuilder() {
                           <button type="button" onClick={() => handleRewrite(proj.description, "projects", idx, "description")} className="flex items-center gap-1 rounded-lg bg-pink-100 px-3 py-1.5 text-xs text-pink-700 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-300">
                             {improvingIndex === `projects-${idx}` ? "Improving..." : <><Sparkles className="w-3 h-3" /> AI Improve</>}
                           </button>
-                          <button type="button" onClick={() => handleRewrite(proj.description, "projects", idx, "description", true)} className="rounded-lg border border-pink-200 bg-white px-3 py-1.5 text-xs text-pink-700 hover:bg-pink-50 dark:border-pink-800 dark:bg-transparent dark:text-pink-300">
-                            Regenerate
-                          </button>
                         </div>
                       </div>
-                      <SuggestionPanel section="projects" idx={idx} fieldKey="description" />
                     </div>
                   </div>
                 ))}

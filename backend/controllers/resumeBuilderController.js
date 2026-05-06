@@ -147,7 +147,7 @@ const generateResume = async (req, res) => {
 
 const rewriteBullet = async (req, res) => {
   try {
-    const { text, bullet, role, section, avoidText, variation } = req.body;
+    const { text, bullet, role, section } = req.body;
     const sourceText = String(text || bullet || "").trim();
 
     if (!sourceText) {
@@ -157,9 +157,7 @@ const rewriteBullet = async (req, res) => {
     console.log("REWRITE REQUEST:", {
       section: section || "general",
       role: role || "professional",
-      variation: Boolean(variation),
       sourceLength: sourceText.length,
-      hasAvoidText: Boolean(String(avoidText || "").trim()),
     });
 
     const fallbackBullet = buildLocalRewrite({ sourceText, section, role }) || sourceText;
@@ -185,10 +183,9 @@ Rules:
 - Expand short inputs intelligently
 - Make project descriptions technical and implementation-focused
 - Make experience descriptions responsibility-focused or impact-focused
-- ${variation ? "Produce a noticeably different phrasing style from prior outputs while preserving the same meaning." : "Produce the best first-pass version."}
-- ${avoidText ? `Do NOT closely repeat this previous version: "${String(avoidText).trim()}"` : "Do not reuse stale phrasing patterns."}
+- Produce the best first-pass version.
+- Do not reuse stale phrasing patterns.
 - Output ONLY the improved bullet point
-- Avoid repeating previous output styles
 
 Input:
 "${sourceText}"
