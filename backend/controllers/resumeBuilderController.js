@@ -32,6 +32,40 @@ const createResumeText = ({ name, role, skills, education, experience, projects,
     .join("\n");
 };
 
+const normalizeAiBullet = (value) =>
+  String(value || "")
+    .replace(/```/g, "")
+    .replace(/^[-*•]\s*/, "")
+    .replace(/^"|"$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getSectionGuidance = (section) => {
+  switch (String(section || "").toLowerCase()) {
+    case "projects":
+      return [
+        "Focus on implementation details, technical choices, architecture, APIs, and shipped functionality.",
+        "Highlight technologies only when they support the accomplishment.",
+      ].join(" ");
+    case "experience":
+      return [
+        "Focus on responsibilities, ownership, collaboration, operations, optimization, and business impact.",
+        "Keep the tone employer-ready and realistic.",
+      ].join(" ");
+    case "education":
+      return [
+        "Focus on relevant coursework, academic rigor, specialization, research, capstones, or practical learning outcomes.",
+        "Keep it concise and credible.",
+      ].join(" ");
+    case "achievements":
+      return [
+        "Focus on recognition, results, competitive standing, or notable accomplishment without exaggeration.",
+      ].join(" ");
+    default:
+      return "Write a polished, ATS-friendly resume bullet that sounds natural, specific, and believable.";
+  }
+};
+
 const generateResume = async (req, res) => {
   try {
     const { name, role, skills, education, experience, projects, achievements } = req.body;
@@ -77,24 +111,52 @@ const generateResume = async (req, res) => {
 
 const rewriteBullet = async (req, res) => {
   try {
-    const { bullet, role } = req.body;
-    if (!bullet) return sendError(res, "Bullet text is required", 400);
+    const { text, bullet, role, section, avoidText, variation } = req.body;
+    const sourceText = String(text || bullet || "").trim();
+    if (!sourceText) return sendError(res, "Resume content is required", 400);
 
-    const prompt = `Rewrite this resume bullet point to make it more impactful for a ${role || "professional"} role. Include an action verb and imply measurable impact. Return ONLY the single rewritten sentence. Bullet: "${bullet}"`;
-    
-    let improvedBullet = "";
+    const prompt = `
+You are an expert resume writer.
+
+Rewrite the following resume content into a strong, realistic, ATS-friendly professional bullet point.
+
+Context:
+- Resume Section: ${section || "general"}
+- Target Role: ${role || "professional"}
+
+Section Guidance:
+${getSectionGuidance(section)}
+
+Rules:
+- Understand the meaning and intent of the input
+- Do NOT invent fake metrics unless truly appropriate from the input
+- Avoid generic wording and repetition
+- Use strong professional action verbs
+- Keep it concise, natural, and believable
+- Expand short inputs intelligently
+- Make project descriptions technical and implementation-focused
+- Make experience descriptions responsibility-focused or impact-focused
+- ${variation ? "Produce a noticeably different phrasing style from prior outputs while preserving the same meaning." : "Produce the best first-pass version."}
+- ${avoidText ? `Do NOT closely repeat this previous version: "${String(avoidText).trim()}"` : "Do not reuse stale phrasing patterns."}
+- Output ONLY the improved bullet point
+- Avoid repeating previous output styles
+
+Input:
+"${sourceText}"
+`;
+
+    let improvedBullet = sourceText;
     try {
       const aiResponse = await generateAI(prompt);
-      improvedBullet = aiResponse.replace(/^"|"$/g, "").trim();
+      improvedBullet = normalizeAiBullet(aiResponse) || sourceText;
     } catch (e) {
-      improvedBullet = `Developed and optimized ${bullet} resulting in a 20% improvement in overall performance.`;
+      console.error("REWRITE AI ERROR:", e);
     }
-    
-    // Fallback if AI gives an empty string
+
     if (!improvedBullet) {
-      improvedBullet = `Developed and optimized ${bullet} resulting in a 20% improvement in overall performance.`;
+      improvedBullet = sourceText;
     }
-    
+
     return res.json({ improvedBullet });
   } catch (err) {
     console.error("REWRITE ERROR:", err);

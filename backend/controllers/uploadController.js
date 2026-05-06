@@ -1,7 +1,36 @@
 const Analysis = require("../models/Analysis");
 const { sendSuccess, sendError } = require("../utils/apiResponse");
 const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
 const { generateAI } = require("../utils/ai");
+
+const parseAIJson = (raw, fallbackValue) => {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    try {
+      const cleaned = String(raw || "").replace(/```json|```/gi, "").trim();
+      return JSON.parse(cleaned);
+    } catch {
+      return fallbackValue;
+    }
+  }
+};
+
+const extractResumeText = async (file) => {
+  const mimeType = String(file?.mimetype || "").toLowerCase();
+  const originalName = String(file?.originalname || "").toLowerCase();
+  const isDocx =
+    mimeType.includes("wordprocessingml") || originalName.endsWith(".docx");
+
+  if (isDocx) {
+    const docxResult = await mammoth.extractRawText({ buffer: file.buffer });
+    return docxResult?.value || "";
+  }
+
+  const pdfData = await pdfParse(file.buffer);
+  return pdfData?.text || "";
+};
 
 const uploadResume = async (req, res) => {
   try {
@@ -43,19 +72,6 @@ const uploadResume = async (req, res) => {
     const pdfData = await pdfParse(req.file.buffer);
     const text = `${pdfData?.text || ""}\n${req.body.description || ""}`.toLowerCase();
     const deterministicMatchedSkills = roleSkills.filter((skill) => text.includes(skill));
-
-    const parseAIJson = (raw, fallbackValue) => {
-      try {
-        return JSON.parse(raw);
-      } catch {
-        try {
-          const cleaned = String(raw || "").replace(/```json|```/gi, "").trim();
-          return JSON.parse(cleaned);
-        } catch {
-          return fallbackValue;
-        }
-      }
-    };
 
     const analysisPrompt = `
 You are an AI resume analyzer.
@@ -660,8 +676,14 @@ const parseResume = async (req, res) => {
     if (!req.file?.buffer) {
       return sendError(res, "Resume file is required", 400);
     }
-    const pdfData = await pdfParse(req.file.buffer);
-    const text = pdfData?.text || "";
+    console.log("IMPORT: selected file", {
+      name: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+    });
+
+    const text = await extractResumeText(req.file);
+    console.log("IMPORT: extracted text preview", text.substring(0, 400));
 
     const prompt = `
 Extract structured resume data exactly from the following text:
@@ -670,35 +692,65 @@ ${JSON.stringify(text)}
 Return ONLY valid JSON:
 {
   "name": "Full Name",
-  "role": "Role Title",
+  "targetRole": "Role Title",
   "skills": ["skill1", "skill2"],
+  "contactInfo": {
+    "email": "",
+    "phone": "",
+    "location": "",
+    "linkedin": ""
+  },
   "education": [{"degree": "...", "institution": "...", "year": "..."}],
   "experience": [{"company": "...", "role": "...", "description": "..."}],
   "projects": [{"title": "...", "techStack": "...", "description": "..."}],
-  "achievements": ["achievement1"]
+  "achievements": ["achievement1"],
+  "certifications": ["certification1"]
 }
 If a section is empty or missing, return an empty array or string respectively. Ensure all objects exist.
 `;
 
     try {
       const aiRes = await generateAI(prompt);
-      const parsedData = JSON.parse(aiRes.replace(/```json|```/gi, "").trim());
-      // ensure all fields exist
+      const parsedData = parseAIJson(aiRes, {});
+      console.log("IMPORT: parsed JSON", parsedData);
       const data = {
         name: parsedData.name || "",
-        role: parsedData.role || "",
+        role: parsedData.targetRole || parsedData.role || "",
+        targetRole: parsedData.targetRole || parsedData.role || "",
         skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+        contactInfo:
+          parsedData.contactInfo && typeof parsedData.contactInfo === "object"
+            ? {
+                email: parsedData.contactInfo.email || "",
+                phone: parsedData.contactInfo.phone || "",
+                location: parsedData.contactInfo.location || "",
+                linkedin: parsedData.contactInfo.linkedin || "",
+              }
+            : { email: "", phone: "", location: "", linkedin: "" },
         education: Array.isArray(parsedData.education) ? parsedData.education : [],
         experience: Array.isArray(parsedData.experience) ? parsedData.experience : [],
         projects: Array.isArray(parsedData.projects) ? parsedData.projects : [],
         achievements: Array.isArray(parsedData.achievements) ? parsedData.achievements : [],
+        certifications: Array.isArray(parsedData.certifications) ? parsedData.certifications : [],
       };
+      console.log("IMPORT: normalized response", data);
       return res.json({ success: true, data });
     } catch (e) {
       console.error("AI PARSE ERROR:", e);
       return res.json({
         success: true,
-        data: { name: "", role: "", skills: [], education: [], experience: [], projects: [], achievements: [] }
+        data: {
+          name: "",
+          role: "",
+          targetRole: "",
+          skills: [],
+          contactInfo: { email: "", phone: "", location: "", linkedin: "" },
+          education: [],
+          experience: [],
+          projects: [],
+          achievements: [],
+          certifications: [],
+        }
       });
     }
   } catch (err) {

@@ -3,9 +3,7 @@ import html2pdf from "html2pdf.js";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import ProfileSyncBadge from "../components/ProfileSyncBadge";
-import ProgressBar from "../components/ProgressBar";
-import Section from "../components/Section";
-import { generateResumeBuilder, saveLatestProfile, rewriteBulletApi, parseResume } from "../services/api";
+import { saveLatestProfile, rewriteBulletApi, parseResume } from "../services/api";
 import { Plus, Trash2, Sparkles, FileText, Download, Briefcase, GraduationCap, Code, Award, User, RefreshCw, Upload, GripVertical } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -146,10 +144,26 @@ const ResumePreview = ({ data, template, sections }) => {
             </ul>
           </div>
         );
+      case "certifications":
+        return data.certifications?.length > 0 && data.certifications.some(c => c) && (
+          <div className="mb-6" key="certifications">
+            <h3 className={st.sectionHeading}>Certifications</h3>
+            <ul className="list-disc list-outside ml-4 mt-1 text-sm text-gray-800 space-y-1">
+              {data.certifications.map((cert, idx) => cert ? <li key={idx} className="pl-1 leading-snug">{cert}</li> : null)}
+            </ul>
+          </div>
+        );
       default:
         return null;
     }
   };
+
+  const contactLine = [
+    data.contactInfo?.email,
+    data.contactInfo?.phone,
+    data.contactInfo?.location,
+    data.contactInfo?.linkedin,
+  ].filter(Boolean).join(" | ");
 
   return (
     <div id="resume-preview" className="bg-white text-black p-10 shadow-xl mx-auto w-full max-w-[850px] min-h-[1100px] box-border">
@@ -157,6 +171,7 @@ const ResumePreview = ({ data, template, sections }) => {
       <div className={st.headerText}>
         <h1 className={st.nameText}>{data.name || "Your Name"}</h1>
         <h2 className={st.roleText}>{data.role || "Target Role"}</h2>
+        {contactLine && <p className="text-sm text-gray-600 mt-2">{contactLine}</p>}
       </div>
 
       {sections.map(section => {
@@ -168,25 +183,26 @@ const ResumePreview = ({ data, template, sections }) => {
   );
 };
 
-const DEFAULT_SECTIONS = ["skills", "experience", "projects", "education", "achievements"];
+const DEFAULT_SECTIONS = ["skills", "experience", "projects", "education", "achievements", "certifications"];
 
 export default function ResumeBuilder() {
   const [resumeData, setResumeData] = useState({
     name: "",
     role: "Frontend Developer",
     skills: [],
+    contactInfo: { email: "", phone: "", location: "", linkedin: "" },
     education: [{ degree: "", institution: "", year: "" }],
     experience: [{ company: "", role: "", description: "" }],
     projects: [{ title: "", techStack: "", description: "" }],
     achievements: [""],
+    certifications: [""],
   });
 
   const [skillsInput, setSkillsInput] = useState("");
-  const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [improvingIndex, setImprovingIndex] = useState(null);
+  const [rewriteSuggestions, setRewriteSuggestions] = useState({});
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
   const [profileSyncStatus, setProfileSyncStatus] = useState("local-only");
   const [template, setTemplate] = useState("modern");
   const [sections, setSections] = useState(DEFAULT_SECTIONS);
@@ -211,6 +227,11 @@ export default function ResumeBuilder() {
   const handleImportResume = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    console.log("IMPORT UI: selected file", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
 
     const formData = new FormData();
     formData.append("resume", file);
@@ -219,37 +240,36 @@ export default function ResumeBuilder() {
       setImporting(true);
       setError("");
       const res = await parseResume(formData);
+      console.log("IMPORT UI: API response", res);
       if (res) {
-        setResumeData({
+        const nextResumeData = {
           name: res.name || "",
-          role: res.role || "",
+          role: res.targetRole || res.role || "",
           skills: res.skills || [],
+          contactInfo: {
+            email: res.contactInfo?.email || "",
+            phone: res.contactInfo?.phone || "",
+            location: res.contactInfo?.location || "",
+            linkedin: res.contactInfo?.linkedin || "",
+          },
           education: res.education?.length ? res.education : [{ degree: "", institution: "", year: "" }],
           experience: res.experience?.length ? res.experience : [{ company: "", role: "", description: "" }],
           projects: res.projects?.length ? res.projects : [{ title: "", techStack: "", description: "" }],
           achievements: res.achievements?.length ? res.achievements : [""],
-        });
+          certifications: res.certifications?.length ? res.certifications : [""],
+        };
+        console.log("IMPORT UI: setting resume state", nextResumeData);
+        setResumeData(nextResumeData);
         setSkillsInput((res.skills || []).join(", "));
+        localStorage.setItem("resumeData", JSON.stringify(nextResumeData));
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to auto-fill from resume.");
+      setError(err.message || "Failed to auto-fill from resume.");
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  };
-
-  const generatePayloadText = () => {
-    return {
-      name: resumeData.name,
-      role: resumeData.role,
-      skills: resumeData.skills,
-      education: resumeData.education.map(e => `${e.degree} at ${e.institution} (${e.year})`.trim()).filter(x => x && x !== "at ()"),
-      experience: resumeData.experience.map(e => `${e.role} at ${e.company}\n${e.description}`.trim()).filter(x => x && x !== "at"),
-      projects: resumeData.projects.map(p => `${p.title} (${p.techStack})\n${p.description}`.trim()).filter(x => x && x !== "()"),
-      achievements: resumeData.achievements.filter(Boolean),
-    };
   };
 
   const handleChange = (field, idx, key, value) => {
@@ -280,52 +300,48 @@ export default function ResumeBuilder() {
     setResumeData({ ...resumeData, skills: arr });
   };
 
-  const handleRewrite = async (text, section, idx, fieldKey) => {
+  const getSuggestionKey = (section, idx) => `${section}-${idx}`;
+
+  const saveRewriteSuggestion = (section, idx, suggestion) => {
+    const suggestionKey = getSuggestionKey(section, idx);
+    setRewriteSuggestions((prev) => {
+      const existing = prev[suggestionKey] || [];
+      const next = [suggestion, ...existing.filter((item) => item !== suggestion)].slice(0, 3);
+      return { ...prev, [suggestionKey]: next };
+    });
+  };
+
+  const clearRewriteSuggestions = (section, idx) => {
+    const suggestionKey = getSuggestionKey(section, idx);
+    setRewriteSuggestions((prev) => {
+      const next = { ...prev };
+      delete next[suggestionKey];
+      return next;
+    });
+  };
+
+  const handleRewrite = async (text, section, idx, fieldKey, variation = false) => {
     if (!text) return;
     try {
       setImprovingIndex(`${section}-${idx}`);
-      const payload = { bullet: text, role: resumeData.role };
+      const suggestionKey = getSuggestionKey(section, idx);
+      const previousSuggestions = rewriteSuggestions[suggestionKey] || [];
+      const payload = {
+        text,
+        section,
+        role: resumeData.role,
+        variation,
+        avoidText: variation ? previousSuggestions[0] || text : "",
+      };
       const res = await rewriteBulletApi(payload);
       if (res?.improvedBullet) {
-        handleChange(section, idx, fieldKey, res.improvedBullet);
+        saveRewriteSuggestion(section, idx, res.improvedBullet);
       }
     } catch (e) {
       console.error(e);
       alert("Failed to rewrite bullet.");
     } finally {
       setImprovingIndex(null);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!resumeData.name.trim()) {
-      setError("Name is required.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError("");
-      const payload = generatePayloadText();
-      const data = await generateResumeBuilder(payload);
-      setResult(data);
-      localStorage.setItem("resumeData", JSON.stringify(resumeData));
-      if (data?.analysis) {
-        localStorage.setItem(
-          "roadmapData",
-          JSON.stringify({
-            role: data.analysis.role || resumeData.role,
-            matchedSkills: data.analysis.matchedSkills || [],
-            missingSkills: data.analysis.missingSkills || [],
-          })
-        );
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to generate AI analysis.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -349,6 +365,7 @@ export default function ResumeBuilder() {
         .map((p) => `${p.title} (${p.techStack})\n${p.description}`.trim())
         .filter((item) => item && item !== "()"),
       achievements: resumeData.achievements.filter(Boolean),
+      certifications: resumeData.certifications.filter(Boolean),
     };
 
     try {
@@ -391,6 +408,41 @@ export default function ResumeBuilder() {
 
   const InputLabel = ({ children }) => <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">{children}</label>;
 
+  const SuggestionPanel = ({ section, idx, fieldKey }) => {
+    const suggestionKey = getSuggestionKey(section, idx);
+    const suggestions = rewriteSuggestions[suggestionKey] || [];
+
+    if (suggestions.length === 0) return null;
+
+    return (
+      <div className="mt-3 space-y-2">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => clearRewriteSuggestions(section, idx)}
+            className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-semibold"
+          >
+            Discard suggestions
+          </button>
+        </div>
+        {suggestions.map((suggestion, suggestionIdx) => (
+          <div key={`${suggestionKey}-${suggestionIdx}`} className="rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-900/20 p-3">
+            <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{suggestion}</p>
+            <div className="mt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => handleChange(section, idx, fieldKey, suggestion)}
+                className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-700"
+              >
+                Use this
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 px-4 py-8 transition-colors duration-300">
       <div className="max-w-[1500px] mx-auto space-y-6">
@@ -420,7 +472,7 @@ export default function ResumeBuilder() {
               </select>
             </div>
 
-            <input type="file" accept=".pdf" className="hidden" ref={fileInputRef} onChange={handleImportResume} />
+            <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" ref={fileInputRef} onChange={handleImportResume} />
             <Button onClick={() => fileInputRef.current?.click()} variant="secondary" className="flex items-center gap-2" disabled={importing}>
                {importing ? <div className="w-4 h-4 border-2 border-gray-500 rounded-full animate-spin border-t-transparent" /> : <Upload className="w-4 h-4"/>}
                Import from Resume
@@ -428,11 +480,6 @@ export default function ResumeBuilder() {
             
             <Button onClick={downloadPdf} variant="primary" className="flex items-center gap-2">
                <Download className="w-4 h-4"/> Export PDF
-            </Button>
-            
-            <Button onClick={handleSubmit} disabled={loading} variant="success" className="flex items-center gap-2">
-               {loading ? <div className="w-4 h-4 border-2 border-white rounded-full animate-spin border-t-transparent" /> : <Sparkles className="w-4 h-4"/>}
-               Analyze ATS
             </Button>
 
             <Button onClick={handleSaveLatestProfile} variant="secondary" className="flex items-center gap-2">
@@ -451,7 +498,7 @@ export default function ResumeBuilder() {
           <div className="space-y-6 h-[80vh] overflow-y-auto pr-2 custom-scrollbar pb-20">
             <Card className="border-l-4 border-l-blue-500">
                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><User className="w-5 h-5"/> Basic Info</h3>
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
                     <InputLabel>Full Name</InputLabel>
                     <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.name} onChange={e => handleChange("name", null, null, e.target.value)} placeholder="John Doe"/>
@@ -459,6 +506,22 @@ export default function ResumeBuilder() {
                  <div>
                     <InputLabel>Target Role</InputLabel>
                     <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.role} onChange={e => handleChange("role", null, null, e.target.value)} placeholder="Software Engineer"/>
+                 </div>
+                 <div>
+                    <InputLabel>Email</InputLabel>
+                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.contactInfo.email} onChange={e => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, email: e.target.value })} placeholder="you@example.com"/>
+                 </div>
+                 <div>
+                    <InputLabel>Phone</InputLabel>
+                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.contactInfo.phone} onChange={e => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, phone: e.target.value })} placeholder="+91 98765 43210"/>
+                 </div>
+                 <div>
+                    <InputLabel>Location</InputLabel>
+                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.contactInfo.location} onChange={e => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, location: e.target.value })} placeholder="Bengaluru, India"/>
+                 </div>
+                 <div>
+                    <InputLabel>LinkedIn</InputLabel>
+                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.contactInfo.linkedin} onChange={e => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, linkedin: e.target.value })} placeholder="linkedin.com/in/username"/>
                  </div>
                </div>
             </Card>
@@ -488,10 +551,16 @@ export default function ResumeBuilder() {
                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                             {getLiveCoachingHints(exp.description) && `💡 ${getLiveCoachingHints(exp.description)}`}
                          </span>
-                         <button onClick={() => handleRewrite(exp.description, "experience", idx, "description")} className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300">
+                         <div className="flex items-center gap-2">
+                         <button type="button" onClick={() => handleRewrite(exp.description, "experience", idx, "description")} className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300">
                             {improvingIndex === `experience-${idx}` ? "Improving..." : <><Sparkles className="w-3 h-3"/> AI Improve</>}
                          </button>
+                         <button type="button" onClick={() => handleRewrite(exp.description, "experience", idx, "description", true)} className="text-xs bg-white text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:bg-transparent dark:border-indigo-800 dark:text-indigo-300">
+                            Regenerate
+                         </button>
+                         </div>
                        </div>
+                       <SuggestionPanel section="experience" idx={idx} fieldKey="description" />
                      </div>
                    </div>
                  ))}
@@ -515,10 +584,16 @@ export default function ResumeBuilder() {
                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                             {getLiveCoachingHints(proj.description) && `💡 ${getLiveCoachingHints(proj.description)}`}
                          </span>
-                         <button onClick={() => handleRewrite(proj.description, "projects", idx, "description")} className="text-xs bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-300">
+                         <div className="flex items-center gap-2">
+                         <button type="button" onClick={() => handleRewrite(proj.description, "projects", idx, "description")} className="text-xs bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-300">
                             {improvingIndex === `projects-${idx}` ? "Improving..." : <><Sparkles className="w-3 h-3"/> AI Improve</>}
                          </button>
+                         <button type="button" onClick={() => handleRewrite(proj.description, "projects", idx, "description", true)} className="text-xs bg-white text-pink-700 border border-pink-200 px-3 py-1.5 rounded-lg hover:bg-pink-50 dark:bg-transparent dark:border-pink-800 dark:text-pink-300">
+                            Regenerate
+                         </button>
+                         </div>
                        </div>
+                       <SuggestionPanel section="projects" idx={idx} fieldKey="description" />
                      </div>
                    </div>
                  ))}
@@ -556,6 +631,19 @@ export default function ResumeBuilder() {
                </div>
             </Card>
 
+            <Card className="border-l-4 border-l-cyan-500 mb-8">
+               <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Award className="w-5 h-5"/> Certifications</h3>
+               <div className="space-y-3">
+                 {resumeData.certifications.map((cert, idx) => (
+                   <div key={idx} className="flex gap-2">
+                     <input className="flex-1 border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white" placeholder="Certification" value={cert} onChange={e => handleChange("certifications", idx, null, e.target.value)} />
+                     <button onClick={() => handleRemoveField("certifications", idx)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5"/></button>
+                   </div>
+                 ))}
+                 <Button type="button" variant="secondary" onClick={() => handleAddField("certifications", "")} className="w-full border-dashed"><Plus className="w-4 h-4 mr-2 inline"/> Add Certification</Button>
+               </div>
+            </Card>
+
           </div>
 
           {/* RIGHT: LIVE PREVIEW PANEL w/ DND */}
@@ -570,23 +658,6 @@ export default function ResumeBuilder() {
           </div>
 
         </div>
-
-        {/* ATS ANALYSIS RESULTS */}
-        {result?.analysis && (
-          <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-             <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">ATS Analysis Results</h2>
-             <Card title={`Auto Analysis ${result.analysis.version || ""}`} subtitle={`Role: ${result.analysis.role}`}>
-              <div className="space-y-4">
-                <ProgressBar value={result.analysis.score || 0} label="Overall ATS score" color="bg-blue-500" />
-                <ProgressBar value={result.analysis.roleReadinessPercentage || 0} label="Role readiness match" color="bg-emerald-500"/>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
-                  <Section title="Matched Skills" items={result.analysis.matchedSkills || []} accent="text-emerald-700" display="badges" badgeVariant="success"/>
-                  <Section title="Missing Skills" items={result.analysis.missingSkills || []} accent="text-red-700" display="badges" badgeVariant="danger"/>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
 
       </div>
       <style jsx global>{`
