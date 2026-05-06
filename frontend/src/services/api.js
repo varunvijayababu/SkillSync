@@ -1,4 +1,4 @@
-const API_URL = "https://skillsync-backend-jkue.onrender.com/api";
+const API_URL = process.env.REACT_APP_API_URL;
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};

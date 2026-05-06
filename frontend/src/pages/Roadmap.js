@@ -56,7 +56,7 @@ function Roadmap() {
         ? data.missingSkills
         : [];
 
-      const res = await fetch("http://localhost:5000/api/roadmap", {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/roadmap`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

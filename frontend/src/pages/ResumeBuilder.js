@@ -76,7 +76,7 @@ const ResumePreview = ({ data, template, sections }) => {
             <div className="space-y-4">
               {data.experience.map((exp, idx) => {
                 if (!exp.company && !exp.role && !exp.description) return null;
-                return (
+                return (  
                   <div key={idx}>
                     <div className="flex justify-between items-end mb-1">
                       <h4 className="font-bold text-gray-900 text-base">{exp.role || "Role"}</h4>
