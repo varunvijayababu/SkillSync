@@ -40,6 +40,12 @@ const normalizeAiBullet = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const toSentenceCase = (value) => {
+  const cleaned = String(value || "").trim().replace(/\s+/g, " ");
+  if (!cleaned) return "";
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+};
+
 const getSectionGuidance = (section) => {
   switch (String(section || "").toLowerCase()) {
     case "projects":
@@ -58,12 +64,42 @@ const getSectionGuidance = (section) => {
         "Keep it concise and credible.",
       ].join(" ");
     case "achievements":
-      return [
-        "Focus on recognition, results, competitive standing, or notable accomplishment without exaggeration.",
-      ].join(" ");
+      return "Focus on recognition, results, competitive standing, or notable accomplishment without exaggeration.";
     default:
       return "Write a polished, ATS-friendly resume bullet that sounds natural, specific, and believable.";
   }
+};
+
+const buildLocalRewrite = ({ sourceText, section, role }) => {
+  const cleaned = toSentenceCase(sourceText).replace(/[.]+$/, "");
+  const normalizedSection = String(section || "").toLowerCase();
+  const targetRole = String(role || "professional role").trim();
+
+  if (!cleaned) return "";
+
+  if (normalizedSection === "projects") {
+    if (/api|backend|frontend|react|node|mongo|express|full stack|full-stack|dashboard|app|application/i.test(cleaned)) {
+      return `Built ${cleaned.charAt(0).toLowerCase() + cleaned.slice(1)} with a focus on implementation quality, maintainable architecture, and user-facing functionality.`;
+    }
+    return `Delivered a project centered on ${cleaned.charAt(0).toLowerCase() + cleaned.slice(1)}, emphasizing technical execution and practical problem-solving.`;
+  }
+
+  if (normalizedSection === "experience") {
+    if (/^\d+\s*(year|years|month|months)\b/i.test(cleaned)) {
+      return `Contributed in a ${targetRole} capacity over ${cleaned.charAt(0).toLowerCase() + cleaned.slice(1)}, supporting day-to-day delivery, collaboration, and continuous improvement efforts.`;
+    }
+    return `Handled ${cleaned.charAt(0).toLowerCase() + cleaned.slice(1)} while collaborating across teams and supporting reliable execution of key responsibilities.`;
+  }
+
+  if (normalizedSection === "education") {
+    return `Built relevant academic foundation through ${cleaned.charAt(0).toLowerCase() + cleaned.slice(1)}, strengthening knowledge applicable to ${targetRole}.`;
+  }
+
+  if (normalizedSection === "achievements") {
+    return `Recognized for ${cleaned.charAt(0).toLowerCase() + cleaned.slice(1)} through consistent performance and meaningful contribution.`;
+  }
+
+  return `Strengthened professional profile through ${cleaned.charAt(0).toLowerCase() + cleaned.slice(1)} in alignment with ${targetRole}.`;
 };
 
 const generateResume = async (req, res) => {
@@ -113,7 +149,20 @@ const rewriteBullet = async (req, res) => {
   try {
     const { text, bullet, role, section, avoidText, variation } = req.body;
     const sourceText = String(text || bullet || "").trim();
-    if (!sourceText) return sendError(res, "Resume content is required", 400);
+
+    if (!sourceText) {
+      return sendError(res, "Resume content is required", 400);
+    }
+
+    console.log("REWRITE REQUEST:", {
+      section: section || "general",
+      role: role || "professional",
+      variation: Boolean(variation),
+      sourceLength: sourceText.length,
+      hasAvoidText: Boolean(String(avoidText || "").trim()),
+    });
+
+    const fallbackBullet = buildLocalRewrite({ sourceText, section, role }) || sourceText;
 
     const prompt = `
 You are an expert resume writer.
@@ -145,21 +194,45 @@ Input:
 "${sourceText}"
 `;
 
-    let improvedBullet = sourceText;
+    let improvedBullet = fallbackBullet;
+    let source = "fallback";
+
     try {
       const aiResponse = await generateAI(prompt);
-      improvedBullet = normalizeAiBullet(aiResponse) || sourceText;
-    } catch (e) {
-      console.error("REWRITE AI ERROR:", e);
+      console.log("REWRITE AI RAW RESPONSE:", aiResponse);
+      const normalized = normalizeAiBullet(aiResponse);
+      if (normalized) {
+        improvedBullet = normalized;
+        source = "ai";
+      }
+    } catch (error) {
+      console.error("REWRITE AI ERROR:", {
+        message: error.message,
+        stack: error.stack,
+      });
     }
 
     if (!improvedBullet) {
       improvedBullet = sourceText;
+      source = "original";
     }
 
-    return res.json({ improvedBullet });
-  } catch (err) {
-    console.error("REWRITE ERROR:", err);
+    console.log("REWRITE FINAL BULLET:", improvedBullet);
+
+    return sendSuccess(
+      res,
+      {
+        improvedBullet,
+        source,
+      },
+      "Bullet rewritten successfully"
+    );
+  } catch (error) {
+    console.error("REWRITE ERROR:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
     return sendError(res, "Failed to rewrite bullet", 500);
   }
 };

@@ -6,5 +6,6 @@ const router = express.Router();
 
 router.post("/resume-builder", authMiddleware, generateResume);
 router.post("/rewrite", authMiddleware, rewriteBullet);
+router.post("/rewrite-bullet", authMiddleware, rewriteBullet);
 
 module.exports = router;

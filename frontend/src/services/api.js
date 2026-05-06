@@ -1,14 +1,31 @@
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL?.replace(/\/$/, "");
+
+const ensureApiUrl = () => {
+  if (!API_URL) {
+    throw new Error("REACT_APP_API_URL is not configured");
+  }
+
+  return API_URL;
+};
+
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 const parseResponse = async (res) => {
+  const rawBody = await res.text();
+
   let json = {};
   try {
-    json = await res.json();
-  } catch {
+    json = rawBody ? JSON.parse(rawBody) : {};
+  } catch (error) {
+    console.error("API PARSE ERROR:", {
+      url: res.url,
+      status: res.status,
+      rawBody,
+      error,
+    });
     throw new Error("Invalid server response");
   }
 
@@ -21,7 +38,7 @@ const parseResponse = async (res) => {
 
 export const registerUser = async (data) => {
   try {
-    const res = await fetch(`${API_URL}/register`, {
+    const res = await fetch(`${ensureApiUrl()}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -33,7 +50,7 @@ export const registerUser = async (data) => {
 };
 
 export const loginUser = async (data) => {
-  const res = await fetch(`${API_URL}/login`, {
+  const res = await fetch(`${ensureApiUrl()}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -43,7 +60,7 @@ export const loginUser = async (data) => {
 };
 
 export const uploadResume = async (formData) => {
-  const res = await fetch(`${API_URL}/upload`, {
+  const res = await fetch(`${ensureApiUrl()}/upload`, {
     method: "POST",
     headers: {
       ...getAuthHeaders(),
@@ -55,20 +72,8 @@ export const uploadResume = async (formData) => {
 };
 
 export const quickAnalyzeResume = async (formData) => {
-  const res = await fetch(`${API_URL}/quick-analyze`, {
+  const res = await fetch(`${ensureApiUrl()}/quick-analyze`, {
     method: "POST",
-    body: formData,
-  });
-
-  return parseResponse(res);
-};
-
-export const parseResume = async (formData) => {
-  const res = await fetch(`${API_URL}/parse`, {
-    method: "POST",
-    headers: {
-      ...getAuthHeaders(),
-    },
     body: formData,
   });
 
@@ -76,7 +81,7 @@ export const parseResume = async (formData) => {
 };
 
 export const fetchHistory = async () => {
-  const res = await fetch(`${API_URL}/history`, {
+  const res = await fetch(`${ensureApiUrl()}/history`, {
     headers: {
       ...getAuthHeaders(),
     },
@@ -85,7 +90,7 @@ export const fetchHistory = async () => {
 };
 
 export const generateResumeBuilder = async (payload) => {
-  const res = await fetch(`${API_URL}/resume-builder`, {
+  const res = await fetch(`${ensureApiUrl()}/resume-builder`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -98,17 +103,16 @@ export const generateResumeBuilder = async (payload) => {
 };
 
 export const fetchLatestProfile = async () => {
-  const res = await fetch(`${API_URL}/profile/latest`, {
+  const res = await fetch(`${ensureApiUrl()}/profile/latest`, {
     headers: {
       ...getAuthHeaders(),
     },
   });
-
   return parseResponse(res);
 };
 
 export const saveLatestProfile = async (payload) => {
-  const res = await fetch(`${API_URL}/profile/latest`, {
+  const res = await fetch(`${ensureApiUrl()}/profile/latest`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -121,7 +125,9 @@ export const saveLatestProfile = async (payload) => {
 };
 
 export const rewriteBulletApi = async (payload) => {
-  const res = await fetch(`${API_URL}/rewrite`, {
+  const requestUrl = `${ensureApiUrl()}/rewrite-bullet`;
+
+  const res = await fetch(requestUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -129,11 +135,12 @@ export const rewriteBulletApi = async (payload) => {
     },
     body: JSON.stringify(payload),
   });
+
   return parseResponse(res);
 };
 
 export const compareResumesApi = async (formData) => {
-  const res = await fetch(`${API_URL}/compare`, {
+  const res = await fetch(`${ensureApiUrl()}/compare`, {
     method: "POST",
     headers: {
       ...getAuthHeaders(),

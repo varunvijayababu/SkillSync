@@ -1,29 +1,47 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import html2pdf from "html2pdf.js";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import ProfileSyncBadge from "../components/ProfileSyncBadge";
-import { saveLatestProfile, rewriteBulletApi, parseResume } from "../services/api";
-import { Plus, Trash2, Sparkles, FileText, Download, Briefcase, GraduationCap, Code, Award, User, RefreshCw, Upload, GripVertical } from "lucide-react";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { saveLatestProfile, rewriteBulletApi } from "../services/api";
+import {
+  Plus,
+  Trash2,
+  Sparkles,
+  FileText,
+  Download,
+  Briefcase,
+  GraduationCap,
+  Code,
+  Award,
+  User,
+  RefreshCw,
+  GripVertical,
+} from "lucide-react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const SortableSectionWrapper = ({ id, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 1 };
+
   return (
     <div ref={setNodeRef} style={style} className={`relative group ${isDragging ? "opacity-50" : ""}`}>
-       <div {...attributes} {...listeners} className="absolute -left-6 top-1 cursor-move opacity-0 group-hover:opacity-100 p-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-500 z-10 print-hidden" data-html2canvas-ignore>
-         <GripVertical className="w-4 h-4"/>
-       </div>
-       {children}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute -left-6 top-1 cursor-move rounded bg-gray-100 p-1 text-gray-500 opacity-0 group-hover:opacity-100 hover:bg-gray-200 z-10 print-hidden"
+        data-html2canvas-ignore
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
+      {children}
     </div>
   );
 };
 
 const ResumePreview = ({ data, template, sections }) => {
-  // Styles based on template
   const getStyles = () => {
     switch (template) {
       case "minimal":
@@ -62,27 +80,28 @@ const ResumePreview = ({ data, template, sections }) => {
         return data.skills?.length > 0 && (
           <div className="mb-6" key="skills">
             <h3 className={st.sectionHeading}>Skills</h3>
-            <p className="text-sm text-gray-800 leading-relaxed font-medium">
-              {data.skills.join(" • ")}
-            </p>
+            <p className="text-sm font-medium leading-relaxed text-gray-800">{data.skills.join(" • ")}</p>
           </div>
         );
       case "experience":
-        return data.experience?.length > 0 && data.experience.some(e => e.company || e.role) && (
+        return data.experience?.length > 0 && data.experience.some((e) => e.company || e.role) && (
           <div className="mb-6" key="experience">
             <h3 className={st.sectionHeading}>Experience</h3>
             <div className="space-y-4">
               {data.experience.map((exp, idx) => {
                 if (!exp.company && !exp.role && !exp.description) return null;
-                return (  
+
+                return (
                   <div key={idx}>
-                    <div className="flex justify-between items-end mb-1">
-                      <h4 className="font-bold text-gray-900 text-base">{exp.role || "Role"}</h4>
-                      <span className="font-semibold text-gray-700 text-sm">{exp.company || "Company"}</span>
+                    <div className="mb-1 flex items-end justify-between">
+                      <h4 className="text-base font-bold text-gray-900">{exp.role || "Role"}</h4>
+                      <span className="text-sm font-semibold text-gray-700">{exp.company || "Company"}</span>
                     </div>
                     {exp.description && (
-                      <ul className="list-disc list-outside ml-4 mt-1 text-sm text-gray-800 space-y-1">
-                        {exp.description.split("\n").map((line, i) => line.trim() ? <li key={i} className="pl-1 leading-snug">{line.trim()}</li> : null)}
+                      <ul className="mt-1 ml-4 list-disc list-outside space-y-1 text-sm text-gray-800">
+                        {exp.description
+                          .split("\n")
+                          .map((line, i) => (line.trim() ? <li key={i} className="pl-1 leading-snug">{line.trim()}</li> : null))}
                       </ul>
                     )}
                   </div>
@@ -92,21 +111,24 @@ const ResumePreview = ({ data, template, sections }) => {
           </div>
         );
       case "projects":
-        return data.projects?.length > 0 && data.projects.some(p => p.title || p.description) && (
+        return data.projects?.length > 0 && data.projects.some((p) => p.title || p.description) && (
           <div className="mb-6" key="projects">
             <h3 className={st.sectionHeading}>Projects</h3>
             <div className="space-y-4">
               {data.projects.map((proj, idx) => {
                 if (!proj.title && !proj.description) return null;
+
                 return (
                   <div key={idx}>
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <h4 className="font-bold text-gray-900 text-base">{proj.title || "Project Name"}</h4>
+                    <div className="mb-1 flex items-baseline gap-2">
+                      <h4 className="text-base font-bold text-gray-900">{proj.title || "Project Name"}</h4>
                       {proj.techStack && <span className={st.techStack}>| {proj.techStack}</span>}
                     </div>
                     {proj.description && (
-                      <ul className="list-disc list-outside ml-4 mt-1 text-sm text-gray-800 space-y-1">
-                        {proj.description.split("\n").map((line, i) => line.trim() ? <li key={i} className="pl-1 leading-snug">{line.trim()}</li> : null)}
+                      <ul className="mt-1 ml-4 list-disc list-outside space-y-1 text-sm text-gray-800">
+                        {proj.description
+                          .split("\n")
+                          .map((line, i) => (line.trim() ? <li key={i} className="pl-1 leading-snug">{line.trim()}</li> : null))}
                       </ul>
                     )}
                   </div>
@@ -116,17 +138,18 @@ const ResumePreview = ({ data, template, sections }) => {
           </div>
         );
       case "education":
-        return data.education?.length > 0 && data.education.some(e => e.degree || e.institution) && (
+        return data.education?.length > 0 && data.education.some((e) => e.degree || e.institution) && (
           <div className="mb-6" key="education">
             <h3 className={st.sectionHeading}>Education</h3>
             <div className="space-y-3">
               {data.education.map((edu, idx) => {
                 if (!edu.degree && !edu.institution) return null;
+
                 return (
-                  <div key={idx} className="flex justify-between items-baseline">
-                    <h4 className="font-bold text-gray-900 text-base">{edu.degree || "Degree"}</h4>
+                  <div key={idx} className="flex items-baseline justify-between">
+                    <h4 className="text-base font-bold text-gray-900">{edu.degree || "Degree"}</h4>
                     <div className="text-right">
-                      <span className="font-semibold text-gray-700 text-sm block">{edu.institution || "Institution"}</span>
+                      <span className="block text-sm font-semibold text-gray-700">{edu.institution || "Institution"}</span>
                       {edu.year && <span className="text-sm text-gray-500">{edu.year}</span>}
                     </div>
                   </div>
@@ -136,20 +159,20 @@ const ResumePreview = ({ data, template, sections }) => {
           </div>
         );
       case "achievements":
-        return data.achievements?.length > 0 && data.achievements.some(a => a) && (
+        return data.achievements?.length > 0 && data.achievements.some((a) => a) && (
           <div className="mb-6" key="achievements">
             <h3 className={st.sectionHeading}>Achievements</h3>
-            <ul className="list-disc list-outside ml-4 mt-1 text-sm text-gray-800 space-y-1">
-              {data.achievements.map((ach, idx) => ach ? <li key={idx} className="pl-1 leading-snug">{ach}</li> : null)}
+            <ul className="mt-1 ml-4 list-disc list-outside space-y-1 text-sm text-gray-800">
+              {data.achievements.map((ach, idx) => (ach ? <li key={idx} className="pl-1 leading-snug">{ach}</li> : null))}
             </ul>
           </div>
         );
       case "certifications":
-        return data.certifications?.length > 0 && data.certifications.some(c => c) && (
+        return data.certifications?.length > 0 && data.certifications.some((c) => c) && (
           <div className="mb-6" key="certifications">
             <h3 className={st.sectionHeading}>Certifications</h3>
-            <ul className="list-disc list-outside ml-4 mt-1 text-sm text-gray-800 space-y-1">
-              {data.certifications.map((cert, idx) => cert ? <li key={idx} className="pl-1 leading-snug">{cert}</li> : null)}
+            <ul className="mt-1 ml-4 list-disc list-outside space-y-1 text-sm text-gray-800">
+              {data.certifications.map((cert, idx) => (cert ? <li key={idx} className="pl-1 leading-snug">{cert}</li> : null))}
             </ul>
           </div>
         );
@@ -163,21 +186,26 @@ const ResumePreview = ({ data, template, sections }) => {
     data.contactInfo?.phone,
     data.contactInfo?.location,
     data.contactInfo?.linkedin,
-  ].filter(Boolean).join(" | ");
+  ]
+    .filter(Boolean)
+    .join(" | ");
 
   return (
-    <div id="resume-preview" className="bg-white text-black p-10 shadow-xl mx-auto w-full max-w-[850px] min-h-[1100px] box-border">
-      {/* HEADER */}
+    <div id="resume-preview" className="mx-auto min-h-[1100px] w-full max-w-[850px] box-border bg-white p-10 text-black shadow-xl">
       <div className={st.headerText}>
         <h1 className={st.nameText}>{data.name || "Your Name"}</h1>
         <h2 className={st.roleText}>{data.role || "Target Role"}</h2>
-        {contactLine && <p className="text-sm text-gray-600 mt-2">{contactLine}</p>}
+        {contactLine && <p className="mt-2 text-sm text-gray-600">{contactLine}</p>}
       </div>
 
-      {sections.map(section => {
+      {sections.map((section) => {
         const rendered = renderSection(section);
         if (!rendered) return null;
-        return <SortableSectionWrapper key={section} id={section}>{rendered}</SortableSectionWrapper>;
+        return (
+          <SortableSectionWrapper key={section} id={section}>
+            {rendered}
+          </SortableSectionWrapper>
+        );
       })}
     </div>
   );
@@ -199,14 +227,13 @@ export default function ResumeBuilder() {
   });
 
   const [skillsInput, setSkillsInput] = useState("");
-  const [importing, setImporting] = useState(false);
   const [improvingIndex, setImprovingIndex] = useState(null);
   const [rewriteSuggestions, setRewriteSuggestions] = useState({});
+  const [rewriteErrors, setRewriteErrors] = useState({});
   const [error, setError] = useState("");
   const [profileSyncStatus, setProfileSyncStatus] = useState("local-only");
   const [template, setTemplate] = useState("modern");
   const [sections, setSections] = useState(DEFAULT_SECTIONS);
-  const fileInputRef = useRef(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -215,65 +242,18 @@ export default function ResumeBuilder() {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    if (active.id !== over.id) {
-      setSections((items) => {
-        const oldIndex = items.indexOf(active.id);
-        const newIndex = items.indexOf(over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
-  };
+    if (!over || active.id === over.id) return;
 
-  const handleImportResume = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    console.log("IMPORT UI: selected file", {
-      name: file.name,
-      type: file.type,
-      size: file.size,
+    setSections((items) => {
+      const oldIndex = items.indexOf(active.id);
+      const newIndex = items.indexOf(over.id);
+      return arrayMove(items, oldIndex, newIndex);
     });
-
-    const formData = new FormData();
-    formData.append("resume", file);
-
-    try {
-      setImporting(true);
-      setError("");
-      const res = await parseResume(formData);
-      console.log("IMPORT UI: API response", res);
-      if (res) {
-        const nextResumeData = {
-          name: res.name || "",
-          role: res.targetRole || res.role || "",
-          skills: res.skills || [],
-          contactInfo: {
-            email: res.contactInfo?.email || "",
-            phone: res.contactInfo?.phone || "",
-            location: res.contactInfo?.location || "",
-            linkedin: res.contactInfo?.linkedin || "",
-          },
-          education: res.education?.length ? res.education : [{ degree: "", institution: "", year: "" }],
-          experience: res.experience?.length ? res.experience : [{ company: "", role: "", description: "" }],
-          projects: res.projects?.length ? res.projects : [{ title: "", techStack: "", description: "" }],
-          achievements: res.achievements?.length ? res.achievements : [""],
-          certifications: res.certifications?.length ? res.certifications : [""],
-        };
-        console.log("IMPORT UI: setting resume state", nextResumeData);
-        setResumeData(nextResumeData);
-        setSkillsInput((res.skills || []).join(", "));
-        localStorage.setItem("resumeData", JSON.stringify(nextResumeData));
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to auto-fill from resume.");
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
   };
 
   const handleChange = (field, idx, key, value) => {
     const updated = { ...resumeData };
+
     if (typeof idx === "number" && key) {
       updated[field][idx][key] = value;
     } else if (typeof idx === "number" && !key) {
@@ -281,11 +261,12 @@ export default function ResumeBuilder() {
     } else {
       updated[field] = value;
     }
+
     setResumeData(updated);
   };
 
-  const handleAddField = (field, template) => {
-    setResumeData({ ...resumeData, [field]: [...resumeData[field], template] });
+  const handleAddField = (field, templateValue) => {
+    setResumeData({ ...resumeData, [field]: [...resumeData[field], templateValue] });
   };
 
   const handleRemoveField = (field, idx) => {
@@ -296,7 +277,10 @@ export default function ResumeBuilder() {
 
   const handleSkillsChange = (e) => {
     setSkillsInput(e.target.value);
-    const arr = e.target.value.split(",").map(s => s.trim()).filter(Boolean);
+    const arr = e.target.value
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     setResumeData({ ...resumeData, skills: arr });
   };
 
@@ -320,11 +304,25 @@ export default function ResumeBuilder() {
     });
   };
 
+  const setRewriteErrorForKey = (suggestionKey, message = "") => {
+    setRewriteErrors((prev) => {
+      if (!message) {
+        const next = { ...prev };
+        delete next[suggestionKey];
+        return next;
+      }
+
+      return { ...prev, [suggestionKey]: message };
+    });
+  };
+
   const handleRewrite = async (text, section, idx, fieldKey, variation = false) => {
     if (!text) return;
+
     try {
       setImprovingIndex(`${section}-${idx}`);
       const suggestionKey = getSuggestionKey(section, idx);
+      setRewriteErrorForKey(suggestionKey, "");
       const previousSuggestions = rewriteSuggestions[suggestionKey] || [];
       const payload = {
         text,
@@ -336,10 +334,18 @@ export default function ResumeBuilder() {
       const res = await rewriteBulletApi(payload);
       if (res?.improvedBullet) {
         saveRewriteSuggestion(section, idx, res.improvedBullet);
+      } else {
+        throw new Error("Rewrite API returned no suggestion");
       }
     } catch (e) {
-      console.error(e);
-      alert("Failed to rewrite bullet.");
+      console.error("REWRITE UI ERROR:", {
+        message: e.message,
+        section,
+        idx,
+        fieldKey,
+        text,
+      });
+      setRewriteErrorForKey(getSuggestionKey(section, idx), e.message || "Failed to rewrite bullet.");
     } finally {
       setImprovingIndex(null);
     }
@@ -387,17 +393,18 @@ export default function ResumeBuilder() {
     const opt = {
       margin: 0,
       filename: `${(resumeData.name || "Resume").replace(/\s+/g, "_")}_SkillSync_${template}.pdf`,
-      image: { type: 'jpeg', quality: 1.0 },
+      image: { type: "jpeg", quality: 1.0 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' }
+      jsPDF: { unit: "pt", format: "letter", orientation: "portrait" },
     };
     html2pdf().set(opt).from(element).save();
   };
 
   const getLiveCoachingHints = (text) => {
     if (!text) return null;
+
     const actionVerbs = ["developed", "built", "implemented", "created", "increased", "decreased", "optimized", "managed", "led", "designed", "achieved"];
-    const hasVerb = actionVerbs.some(v => text.toLowerCase().includes(v));
+    const hasVerb = actionVerbs.some((v) => text.toLowerCase().includes(v));
     const hasMetric = /\d+%|\$\d+|\d+/.test(text);
 
     if (!hasVerb && !hasMetric) return "Use action verbs and metrics.";
@@ -406,33 +413,46 @@ export default function ResumeBuilder() {
     return null;
   };
 
-  const InputLabel = ({ children }) => <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">{children}</label>;
+  const InputLabel = ({ children }) => (
+    <label className="mb-1 block text-sm font-semibold text-gray-700 dark:text-gray-300">{children}</label>
+  );
 
   const SuggestionPanel = ({ section, idx, fieldKey }) => {
     const suggestionKey = getSuggestionKey(section, idx);
     const suggestions = rewriteSuggestions[suggestionKey] || [];
+    const inlineError = rewriteErrors[suggestionKey];
 
-    if (suggestions.length === 0) return null;
+    if (suggestions.length === 0 && !inlineError) return null;
 
     return (
       <div className="mt-3 space-y-2">
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => clearRewriteSuggestions(section, idx)}
-            className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-semibold"
-          >
-            Discard suggestions
-          </button>
-        </div>
+        {inlineError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+            {inlineError}
+          </div>
+        )}
+        {suggestions.length > 0 && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => clearRewriteSuggestions(section, idx)}
+              className="text-xs font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              Discard suggestions
+            </button>
+          </div>
+        )}
         {suggestions.map((suggestion, suggestionIdx) => (
-          <div key={`${suggestionKey}-${suggestionIdx}`} className="rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-900/20 p-3">
-            <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{suggestion}</p>
+          <div key={`${suggestionKey}-${suggestionIdx}`} className="rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-900/40 dark:bg-blue-900/20">
+            <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{suggestion}</p>
             <div className="mt-2 flex justify-end">
               <button
                 type="button"
-                onClick={() => handleChange(section, idx, fieldKey, suggestion)}
-                className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-700"
+                onClick={() => {
+                  setRewriteErrorForKey(suggestionKey, "");
+                  handleChange(section, idx, fieldKey, suggestion);
+                }}
+                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
               >
                 Use this
               </button>
@@ -444,27 +464,27 @@ export default function ResumeBuilder() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 px-4 py-8 transition-colors duration-300">
-      <div className="max-w-[1500px] mx-auto space-y-6">
-        
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="min-h-screen bg-gray-50 px-4 py-8 transition-colors duration-300 dark:bg-gray-900">
+      <div className="mx-auto max-w-[1500px] space-y-6">
+        <div className="flex flex-col justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:flex-row lg:items-center">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent flex items-center gap-3">
-              <FileText className="w-8 h-8 text-blue-500"/> AI Resume Builder
+            <h1 className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-3xl font-bold text-transparent">
+              <FileText className="h-8 w-8 text-blue-500" />
+              AI Resume Builder
             </h1>
-            <div className="flex flex-wrap items-center gap-3 mt-1">
+            <div className="mt-1 flex flex-wrap items-center gap-3">
               <p className="text-sm text-gray-500 dark:text-gray-400">Design, auto-fill, reorder, and export.</p>
               <ProfileSyncBadge status={profileSyncStatus} />
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            
-            <div className="flex items-center gap-2 border-r border-gray-200 dark:border-gray-700 pr-4">
+
+          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+            <div className="flex items-center gap-2 border-r border-gray-200 pr-4 dark:border-gray-700">
               <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">Template</span>
-              <select 
-                value={template} 
+              <select
+                value={template}
                 onChange={(e) => setTemplate(e.target.value)}
-                className="bg-gray-100 dark:bg-gray-700 border-none outline-none rounded-lg px-3 py-1.5 text-sm font-medium text-gray-800 dark:text-gray-200"
+                className="rounded-lg border-none bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-800 outline-none dark:bg-gray-700 dark:text-gray-200"
               >
                 <option value="modern">Modern (Default)</option>
                 <option value="minimal">Minimal</option>
@@ -472,194 +492,237 @@ export default function ResumeBuilder() {
               </select>
             </div>
 
-            <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" ref={fileInputRef} onChange={handleImportResume} />
-            <Button onClick={() => fileInputRef.current?.click()} variant="secondary" className="flex items-center gap-2" disabled={importing}>
-               {importing ? <div className="w-4 h-4 border-2 border-gray-500 rounded-full animate-spin border-t-transparent" /> : <Upload className="w-4 h-4"/>}
-               Import from Resume
-            </Button>
-            
             <Button onClick={downloadPdf} variant="primary" className="flex items-center gap-2">
-               <Download className="w-4 h-4"/> Export PDF
+              <Download className="w-4 h-4" />
+              Export PDF
             </Button>
 
             <Button onClick={handleSaveLatestProfile} variant="secondary" className="flex items-center gap-2">
-               <User className="w-4 h-4"/> Use as latest profile
+              <User className="w-4 h-4" />
+              Use as latest profile
             </Button>
 
-            <Button onClick={() => setSections(DEFAULT_SECTIONS)} variant="secondary" className="px-3" title="Reset Layout"><RefreshCw className="w-4 h-4"/></Button>
+            <Button onClick={() => setSections(DEFAULT_SECTIONS)} variant="secondary" className="px-3" title="Reset Layout">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
-        {error && <div className="bg-red-100 text-red-700 p-4 rounded-xl border border-red-200">{error}</div>}
+        {error && <div className="rounded-xl border border-red-200 bg-red-100 p-4 text-red-700">{error}</div>}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          
-          {/* LEFT: FORM PANEL */}
-          <div className="space-y-6 h-[80vh] overflow-y-auto pr-2 custom-scrollbar pb-20">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+          <div className="custom-scrollbar h-[80vh] space-y-6 overflow-y-auto pr-2 pb-20">
             <Card className="border-l-4 border-l-blue-500">
-               <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><User className="w-5 h-5"/> Basic Info</h3>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div>
-                    <InputLabel>Full Name</InputLabel>
-                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.name} onChange={e => handleChange("name", null, null, e.target.value)} placeholder="John Doe"/>
-                 </div>
-                 <div>
-                    <InputLabel>Target Role</InputLabel>
-                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.role} onChange={e => handleChange("role", null, null, e.target.value)} placeholder="Software Engineer"/>
-                 </div>
-                 <div>
-                    <InputLabel>Email</InputLabel>
-                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.contactInfo.email} onChange={e => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, email: e.target.value })} placeholder="you@example.com"/>
-                 </div>
-                 <div>
-                    <InputLabel>Phone</InputLabel>
-                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.contactInfo.phone} onChange={e => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, phone: e.target.value })} placeholder="+91 98765 43210"/>
-                 </div>
-                 <div>
-                    <InputLabel>Location</InputLabel>
-                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.contactInfo.location} onChange={e => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, location: e.target.value })} placeholder="Bengaluru, India"/>
-                 </div>
-                 <div>
-                    <InputLabel>LinkedIn</InputLabel>
-                    <input className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" value={resumeData.contactInfo.linkedin} onChange={e => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, linkedin: e.target.value })} placeholder="linkedin.com/in/username"/>
-                 </div>
-               </div>
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                <User className="w-5 h-5" />
+                Basic Info
+              </h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <InputLabel>Full Name</InputLabel>
+                  <input className="w-full rounded-lg border bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" value={resumeData.name} onChange={(e) => handleChange("name", null, null, e.target.value)} placeholder="John Doe" />
+                </div>
+                <div>
+                  <InputLabel>Target Role</InputLabel>
+                  <input className="w-full rounded-lg border bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" value={resumeData.role} onChange={(e) => handleChange("role", null, null, e.target.value)} placeholder="Software Engineer" />
+                </div>
+                <div>
+                  <InputLabel>Email</InputLabel>
+                  <input className="w-full rounded-lg border bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" value={resumeData.contactInfo.email} onChange={(e) => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, email: e.target.value })} placeholder="you@example.com" />
+                </div>
+                <div>
+                  <InputLabel>Phone</InputLabel>
+                  <input className="w-full rounded-lg border bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" value={resumeData.contactInfo.phone} onChange={(e) => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, phone: e.target.value })} placeholder="+91 98765 43210" />
+                </div>
+                <div>
+                  <InputLabel>Location</InputLabel>
+                  <input className="w-full rounded-lg border bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" value={resumeData.contactInfo.location} onChange={(e) => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, location: e.target.value })} placeholder="Bengaluru, India" />
+                </div>
+                <div>
+                  <InputLabel>LinkedIn</InputLabel>
+                  <input className="w-full rounded-lg border bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" value={resumeData.contactInfo.linkedin} onChange={(e) => handleChange("contactInfo", null, null, { ...resumeData.contactInfo, linkedin: e.target.value })} placeholder="linkedin.com/in/username" />
+                </div>
+              </div>
             </Card>
 
             <Card className="border-l-4 border-l-emerald-500">
-               <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Code className="w-5 h-5"/> Skills</h3>
-               <textarea className="w-full border p-2 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white" rows="2" value={skillsInput} onChange={handleSkillsChange} placeholder="React, Node.js, Python, SQL"/>
-               <div className="flex flex-wrap gap-2 mt-3">
-                 {resumeData.skills.map(s => <span key={s} className="px-2 py-1 text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 rounded-full">{s}</span>)}
-               </div>
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                <Code className="w-5 h-5" />
+                Skills
+              </h3>
+              <textarea className="w-full rounded-lg border bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" rows="2" value={skillsInput} onChange={handleSkillsChange} placeholder="React, Node.js, Python, SQL" />
+              <div className="mt-3 flex flex-wrap gap-2">
+                {resumeData.skills.map((s) => (
+                  <span key={s} className="rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-800 dark:bg-emerald-900/30">
+                    {s}
+                  </span>
+                ))}
+              </div>
             </Card>
 
             <Card className="border-l-4 border-l-indigo-500">
-               <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Briefcase className="w-5 h-5"/> Experience</h3>
-               <div className="space-y-6">
-                 {resumeData.experience.map((exp, idx) => (
-                   <div key={idx} className="relative bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                     <button onClick={() => handleRemoveField("experience", idx)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
-                     <div className="grid grid-cols-2 gap-3 mb-3 pr-8">
-                       <input className="w-full border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white" placeholder="Company Name" value={exp.company} onChange={e => handleChange("experience", idx, "company", e.target.value)} />
-                       <input className="w-full border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white" placeholder="Job Title" value={exp.role} onChange={e => handleChange("experience", idx, "role", e.target.value)} />
-                     </div>
-                     <div className="relative">
-                       <textarea className="w-full border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white" rows="4" placeholder="Description (bullet points separated by new lines)" value={exp.description} onChange={e => handleChange("experience", idx, "description", e.target.value)} />
-                       
-                       <div className="flex items-center justify-between mt-2">
-                         <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                            {getLiveCoachingHints(exp.description) && `💡 ${getLiveCoachingHints(exp.description)}`}
-                         </span>
-                         <div className="flex items-center gap-2">
-                         <button type="button" onClick={() => handleRewrite(exp.description, "experience", idx, "description")} className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300">
-                            {improvingIndex === `experience-${idx}` ? "Improving..." : <><Sparkles className="w-3 h-3"/> AI Improve</>}
-                         </button>
-                         <button type="button" onClick={() => handleRewrite(exp.description, "experience", idx, "description", true)} className="text-xs bg-white text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:bg-transparent dark:border-indigo-800 dark:text-indigo-300">
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                <Briefcase className="w-5 h-5" />
+                Experience
+              </h3>
+              <div className="space-y-6">
+                {resumeData.experience.map((exp, idx) => (
+                  <div key={idx} className="relative rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                    <button onClick={() => handleRemoveField("experience", idx)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="mb-3 grid grid-cols-2 gap-3 pr-8">
+                      <input className="w-full rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="Company Name" value={exp.company} onChange={(e) => handleChange("experience", idx, "company", e.target.value)} />
+                      <input className="w-full rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="Job Title" value={exp.role} onChange={(e) => handleChange("experience", idx, "role", e.target.value)} />
+                    </div>
+                    <div className="relative">
+                      <textarea className="w-full rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" rows="4" placeholder="Description (bullet points separated by new lines)" value={exp.description} onChange={(e) => handleChange("experience", idx, "description", e.target.value)} />
+
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                          {getLiveCoachingHints(exp.description) && `Tip: ${getLiveCoachingHints(exp.description)}`}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => handleRewrite(exp.description, "experience", idx, "description")} className="flex items-center gap-1 rounded-lg bg-indigo-100 px-3 py-1.5 text-xs text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300">
+                            {improvingIndex === `experience-${idx}` ? "Improving..." : <><Sparkles className="w-3 h-3" /> AI Improve</>}
+                          </button>
+                          <button type="button" onClick={() => handleRewrite(exp.description, "experience", idx, "description", true)} className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:bg-transparent dark:text-indigo-300">
                             Regenerate
-                         </button>
-                         </div>
-                       </div>
-                       <SuggestionPanel section="experience" idx={idx} fieldKey="description" />
-                     </div>
-                   </div>
-                 ))}
-                 <Button type="button" variant="secondary" onClick={() => handleAddField("experience", {company:"", role:"", description:""})} className="w-full border-dashed"><Plus className="w-4 h-4 mr-2 inline"/> Add Experience</Button>
-               </div>
+                          </button>
+                        </div>
+                      </div>
+                      <SuggestionPanel section="experience" idx={idx} fieldKey="description" />
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" onClick={() => handleAddField("experience", { company: "", role: "", description: "" })} className="w-full border-dashed">
+                  <Plus className="mr-2 inline h-4 w-4" />
+                  Add Experience
+                </Button>
+              </div>
             </Card>
 
             <Card className="border-l-4 border-l-pink-500">
-               <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Code className="w-5 h-5"/> Projects</h3>
-               <div className="space-y-6">
-                 {resumeData.projects.map((proj, idx) => (
-                   <div key={idx} className="relative bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                     <button onClick={() => handleRemoveField("projects", idx)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
-                     <div className="grid grid-cols-2 gap-3 mb-3 pr-8">
-                       <input className="w-full border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white" placeholder="Project Title" value={proj.title} onChange={e => handleChange("projects", idx, "title", e.target.value)} />
-                       <input className="w-full border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white" placeholder="Tech Stack (e.g. React, Node)" value={proj.techStack} onChange={e => handleChange("projects", idx, "techStack", e.target.value)} />
-                     </div>
-                     <div className="relative">
-                       <textarea className="w-full border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white" rows="3" placeholder="Description" value={proj.description} onChange={e => handleChange("projects", idx, "description", e.target.value)} />
-                       <div className="flex items-center justify-between mt-2">
-                         <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                            {getLiveCoachingHints(proj.description) && `💡 ${getLiveCoachingHints(proj.description)}`}
-                         </span>
-                         <div className="flex items-center gap-2">
-                         <button type="button" onClick={() => handleRewrite(proj.description, "projects", idx, "description")} className="text-xs bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-300">
-                            {improvingIndex === `projects-${idx}` ? "Improving..." : <><Sparkles className="w-3 h-3"/> AI Improve</>}
-                         </button>
-                         <button type="button" onClick={() => handleRewrite(proj.description, "projects", idx, "description", true)} className="text-xs bg-white text-pink-700 border border-pink-200 px-3 py-1.5 rounded-lg hover:bg-pink-50 dark:bg-transparent dark:border-pink-800 dark:text-pink-300">
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                <Code className="w-5 h-5" />
+                Projects
+              </h3>
+              <div className="space-y-6">
+                {resumeData.projects.map((proj, idx) => (
+                  <div key={idx} className="relative rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                    <button onClick={() => handleRemoveField("projects", idx)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="mb-3 grid grid-cols-2 gap-3 pr-8">
+                      <input className="w-full rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="Project Title" value={proj.title} onChange={(e) => handleChange("projects", idx, "title", e.target.value)} />
+                      <input className="w-full rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="Tech Stack (e.g. React, Node)" value={proj.techStack} onChange={(e) => handleChange("projects", idx, "techStack", e.target.value)} />
+                    </div>
+                    <div className="relative">
+                      <textarea className="w-full rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" rows="3" placeholder="Description" value={proj.description} onChange={(e) => handleChange("projects", idx, "description", e.target.value)} />
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                          {getLiveCoachingHints(proj.description) && `Tip: ${getLiveCoachingHints(proj.description)}`}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => handleRewrite(proj.description, "projects", idx, "description")} className="flex items-center gap-1 rounded-lg bg-pink-100 px-3 py-1.5 text-xs text-pink-700 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-300">
+                            {improvingIndex === `projects-${idx}` ? "Improving..." : <><Sparkles className="w-3 h-3" /> AI Improve</>}
+                          </button>
+                          <button type="button" onClick={() => handleRewrite(proj.description, "projects", idx, "description", true)} className="rounded-lg border border-pink-200 bg-white px-3 py-1.5 text-xs text-pink-700 hover:bg-pink-50 dark:border-pink-800 dark:bg-transparent dark:text-pink-300">
                             Regenerate
-                         </button>
-                         </div>
-                       </div>
-                       <SuggestionPanel section="projects" idx={idx} fieldKey="description" />
-                     </div>
-                   </div>
-                 ))}
-                 <Button type="button" variant="secondary" onClick={() => handleAddField("projects", {title:"", techStack:"", description:""})} className="w-full border-dashed"><Plus className="w-4 h-4 mr-2 inline"/> Add Project</Button>
-               </div>
+                          </button>
+                        </div>
+                      </div>
+                      <SuggestionPanel section="projects" idx={idx} fieldKey="description" />
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" onClick={() => handleAddField("projects", { title: "", techStack: "", description: "" })} className="w-full border-dashed">
+                  <Plus className="mr-2 inline h-4 w-4" />
+                  Add Project
+                </Button>
+              </div>
             </Card>
 
             <Card className="border-l-4 border-l-amber-500">
-               <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><GraduationCap className="w-5 h-5"/> Education</h3>
-               <div className="space-y-4">
-                 {resumeData.education.map((edu, idx) => (
-                   <div key={idx} className="relative bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                     <button onClick={() => handleRemoveField("education", idx)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pr-8">
-                       <input className="w-full border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white md:col-span-1" placeholder="Degree (B.S. CS)" value={edu.degree} onChange={e => handleChange("education", idx, "degree", e.target.value)} />
-                       <input className="w-full border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white md:col-span-1" placeholder="Institution" value={edu.institution} onChange={e => handleChange("education", idx, "institution", e.target.value)} />
-                       <input className="w-full border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white md:col-span-1" placeholder="Year (2020-2024)" value={edu.year} onChange={e => handleChange("education", idx, "year", e.target.value)} />
-                     </div>
-                   </div>
-                 ))}
-                 <Button type="button" variant="secondary" onClick={() => handleAddField("education", {degree:"", institution:"", year:""})} className="w-full border-dashed"><Plus className="w-4 h-4 mr-2 inline"/> Add Education</Button>
-               </div>
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                <GraduationCap className="w-5 h-5" />
+                Education
+              </h3>
+              <div className="space-y-4">
+                {resumeData.education.map((edu, idx) => (
+                  <div key={idx} className="relative rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                    <button onClick={() => handleRemoveField("education", idx)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="grid grid-cols-1 gap-3 pr-8 md:grid-cols-3">
+                      <input className="w-full rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white md:col-span-1" placeholder="Degree (B.S. CS)" value={edu.degree} onChange={(e) => handleChange("education", idx, "degree", e.target.value)} />
+                      <input className="w-full rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white md:col-span-1" placeholder="Institution" value={edu.institution} onChange={(e) => handleChange("education", idx, "institution", e.target.value)} />
+                      <input className="w-full rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white md:col-span-1" placeholder="Year (2020-2024)" value={edu.year} onChange={(e) => handleChange("education", idx, "year", e.target.value)} />
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" onClick={() => handleAddField("education", { degree: "", institution: "", year: "" })} className="w-full border-dashed">
+                  <Plus className="mr-2 inline h-4 w-4" />
+                  Add Education
+                </Button>
+              </div>
             </Card>
 
-            <Card className="border-l-4 border-l-yellow-500 mb-8">
-               <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Award className="w-5 h-5"/> Achievements</h3>
-               <div className="space-y-3">
-                 {resumeData.achievements.map((ach, idx) => (
-                   <div key={idx} className="flex gap-2">
-                     <input className="flex-1 border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white" placeholder="Award or achievement" value={ach} onChange={e => handleChange("achievements", idx, null, e.target.value)} />
-                     <button onClick={() => handleRemoveField("achievements", idx)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5"/></button>
-                   </div>
-                 ))}
-                 <Button type="button" variant="secondary" onClick={() => handleAddField("achievements", "")} className="w-full border-dashed"><Plus className="w-4 h-4 mr-2 inline"/> Add Achievement</Button>
-               </div>
+            <Card className="mb-8 border-l-4 border-l-yellow-500">
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                <Award className="w-5 h-5" />
+                Achievements
+              </h3>
+              <div className="space-y-3">
+                {resumeData.achievements.map((ach, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <input className="flex-1 rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="Award or achievement" value={ach} onChange={(e) => handleChange("achievements", idx, null, e.target.value)} />
+                    <button onClick={() => handleRemoveField("achievements", idx)} className="p-2 text-gray-400 hover:text-red-500">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" onClick={() => handleAddField("achievements", "")} className="w-full border-dashed">
+                  <Plus className="mr-2 inline h-4 w-4" />
+                  Add Achievement
+                </Button>
+              </div>
             </Card>
 
-            <Card className="border-l-4 border-l-cyan-500 mb-8">
-               <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Award className="w-5 h-5"/> Certifications</h3>
-               <div className="space-y-3">
-                 {resumeData.certifications.map((cert, idx) => (
-                   <div key={idx} className="flex gap-2">
-                     <input className="flex-1 border p-2 rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white" placeholder="Certification" value={cert} onChange={e => handleChange("certifications", idx, null, e.target.value)} />
-                     <button onClick={() => handleRemoveField("certifications", idx)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5"/></button>
-                   </div>
-                 ))}
-                 <Button type="button" variant="secondary" onClick={() => handleAddField("certifications", "")} className="w-full border-dashed"><Plus className="w-4 h-4 mr-2 inline"/> Add Certification</Button>
-               </div>
+            <Card className="mb-8 border-l-4 border-l-cyan-500">
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                <Award className="w-5 h-5" />
+                Certifications
+              </h3>
+              <div className="space-y-3">
+                {resumeData.certifications.map((cert, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <input className="flex-1 rounded-lg border bg-white p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white" placeholder="Certification" value={cert} onChange={(e) => handleChange("certifications", idx, null, e.target.value)} />
+                    <button onClick={() => handleRemoveField("certifications", idx)} className="p-2 text-gray-400 hover:text-red-500">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" onClick={() => handleAddField("certifications", "")} className="w-full border-dashed">
+                  <Plus className="mr-2 inline h-4 w-4" />
+                  Add Certification
+                </Button>
+              </div>
             </Card>
-
           </div>
 
-          {/* RIGHT: LIVE PREVIEW PANEL w/ DND */}
-          <div className="sticky top-8 bg-gray-200 dark:bg-gray-800 p-6 rounded-2xl border border-gray-300 dark:border-gray-700 h-[80vh] overflow-y-auto custom-scrollbar flex justify-center shadow-inner">
-             <div className="transform scale-[0.6] sm:scale-75 md:scale-[0.8] lg:scale-[0.7] xl:scale-[0.85] origin-top w-full drop-shadow-2xl flex justify-center pb-20">
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={sections} strategy={verticalListSortingStrategy}>
-                    <ResumePreview data={resumeData} template={template} sections={sections} />
-                  </SortableContext>
-                </DndContext>
-             </div>
+          <div className="custom-scrollbar sticky top-8 flex h-[80vh] justify-center overflow-y-auto rounded-2xl border border-gray-300 bg-gray-200 p-6 shadow-inner dark:border-gray-700 dark:bg-gray-800">
+            <div className="origin-top transform scale-[0.6] sm:scale-75 md:scale-[0.8] lg:scale-[0.7] xl:scale-[0.85] w-full justify-center pb-20 drop-shadow-2xl flex">
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={sections} strategy={verticalListSortingStrategy}>
+                  <ResumePreview data={resumeData} template={template} sections={sections} />
+                </SortableContext>
+              </DndContext>
+            </div>
           </div>
-
         </div>
-
       </div>
+
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
